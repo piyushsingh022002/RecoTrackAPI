@@ -57,8 +57,9 @@ namespace StudentRoutineTrackerApi.Controllers
                 return Unauthorized(new { Message = "Invalid credentials" });
 
             var token = _authService.GenerateJwtToken(user);
+            Console.WriteLine(token);
             _logger.LogInformation($"User logged in: {request.Email}");
-
+            
             return Ok(new
             {
                 Token = token,

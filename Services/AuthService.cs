@@ -36,7 +36,8 @@ namespace StudentRoutineTrackerApi.Services
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username)
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
+                new Claim("id", user.Id)
             };
 
             var token = new JwtSecurityToken(
@@ -48,4 +49,3 @@ namespace StudentRoutineTrackerApi.Services
         }
     }
 }
- 
