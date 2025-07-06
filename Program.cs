@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MongoDB.Driver;
 using Serilog;
 using StudentRoutineTrackerApi.Configurations;
 using StudentRoutineTrackerApi.Repositories;
+using StudentRoutineTrackerApi.Repositories.Interfaces;
 using StudentRoutineTrackerApi.Services;
+using StudentRoutineTrackerApi.Services.Interfaces;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +21,18 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // ----- MongoDB -----
+builder.Services.AddSingleton<IMongoClient>(sp =>
+{
+    var settings = builder.Configuration.GetSection("MongoDbSettings");
+    return new MongoClient(settings["ConnectionString"]);
+});
+builder.Services.AddScoped<IMongoDatabase>(sp =>
+{
+    var client = sp.GetRequiredService<IMongoClient>();
+    var settings = builder.Configuration.GetSection("MongoDbSettings");
+    return client.GetDatabase(settings["DatabaseName"]);
+});
+
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection(nameof(MongoDbSettings)));
 builder.Services.AddSingleton<IMongoDbService, MongoDbService>();
@@ -60,6 +75,8 @@ builder.Services.AddAuthentication(options =>
 
 // ----- Controllers -----
 builder.Services.AddControllers();
+builder.Services.AddScoped<INoteRepository, NoteRepository>();
+builder.Services.AddScoped<INoteService, NoteService>();
 
 // ----- Swagger -----
 builder.Services.AddEndpointsApiExplorer();
