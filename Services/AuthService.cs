@@ -15,6 +15,7 @@ namespace StudentRoutineTrackerApi.Services
         public AuthService(IConfiguration configuration)
         {
             _jwtKey = configuration["JwtSettings:SecretKey"]!;
+            Console.WriteLine("GENERATOR JWT KEY: " + _jwtKey);
         }
 
         public string HashPassword(string password)
@@ -31,6 +32,9 @@ namespace StudentRoutineTrackerApi.Services
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            
+
 
             var claims = new[]
             {
