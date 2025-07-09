@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentRoutineTrackerApi.Models;
 using StudentRoutineTrackerApi.Repositories;
@@ -22,6 +24,18 @@ namespace StudentRoutineTrackerApi.Controllers
             _authService = authService;
             _logger = logger;
         }
+
+        [Authorize]
+        [HttpGet("user")]
+        public IActionResult GetCurrentUser()
+        {
+            var userId = User.FindFirst("userId")?.Value;
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            var name = User.FindFirst(ClaimTypes.Name)?.Value;
+
+            return Ok(new { userId, email, name });
+        }
+
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
@@ -59,7 +73,7 @@ namespace StudentRoutineTrackerApi.Controllers
             var token = _authService.GenerateJwtToken(user);
             Console.WriteLine(token);
             _logger.LogInformation($"User logged in: {request.Email}");
-            
+
             return Ok(new
             {
                 Token = token,
