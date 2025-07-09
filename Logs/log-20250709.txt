@@ -313,3 +313,44 @@ MongoDB.Bson.BsonSerializationException: An error occurred while serializing the
 2025-07-09 11:38:13.896 +05:30 [INF] HTTP GET /api/Notes responded 200 in 124.8371 ms
 2025-07-09 11:38:13.897 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5186/api/Notes - 200 null application/json; charset=utf-8 132.9878ms
 2025-07-09 11:39:07.343 +05:30 [INF] Application is shutting down...
+2025-07-09 15:02:10.231 +05:30 [INF] User profile is available. Using '/Users/piyush/.aspnet/DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+2025-07-09 15:02:10.427 +05:30 [INF] Now listening on: http://localhost:5186
+2025-07-09 15:02:10.429 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2025-07-09 15:02:10.429 +05:30 [INF] Hosting environment: Development
+2025-07-09 15:02:10.429 +05:30 [INF] Content root path: /Users/piyush/StudentRoutineTrackerApi
+2025-07-09 15:02:25.875 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5186/swagger/index.html - null null
+2025-07-09 15:02:25.970 +05:30 [INF] HTTP GET /swagger/index.html responded 200 in 80.1529 ms
+2025-07-09 15:02:25.973 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5186/swagger/index.html - 200 null text/html;charset=utf-8 98.1884ms
+2025-07-09 15:02:26.047 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5186/swagger/v1/swagger.json - null null
+2025-07-09 15:02:26.097 +05:30 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 49.3129 ms
+2025-07-09 15:02:26.097 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5186/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 50.1998ms
+2025-07-09 15:02:42.108 +05:30 [INF] Request starting HTTP/1.1 POST http://localhost:5186/api/Auth/login - application/json 59
+2025-07-09 15:02:42.116 +05:30 [INF] CORS policy execution failed.
+2025-07-09 15:02:42.116 +05:30 [INF] Request origin http://localhost:5186 does not have permission to access the resource.
+2025-07-09 15:02:42.122 +05:30 [INF] Executing endpoint 'StudentRoutineTrackerApi.Controllers.AuthController.Login (StudentRoutineTrackerApi)'
+2025-07-09 15:02:42.153 +05:30 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Login(StudentRoutineTrackerApi.Models.LoginRequest) on controller StudentRoutineTrackerApi.Controllers.AuthController (StudentRoutineTrackerApi).
+2025-07-09 15:02:43.484 +05:30 [INF] Executing UnauthorizedObjectResult, writing value of type '<>f__AnonymousType1`1[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2025-07-09 15:02:43.494 +05:30 [INF] Executed action StudentRoutineTrackerApi.Controllers.AuthController.Login (StudentRoutineTrackerApi) in 1339.6776ms
+2025-07-09 15:02:43.495 +05:30 [INF] Executed endpoint 'StudentRoutineTrackerApi.Controllers.AuthController.Login (StudentRoutineTrackerApi)'
+2025-07-09 15:02:43.496 +05:30 [INF] HTTP POST /api/Auth/login responded 401 in 1382.2758 ms
+2025-07-09 15:02:43.496 +05:30 [INF] Request finished HTTP/1.1 POST http://localhost:5186/api/Auth/login - 401 null application/json; charset=utf-8 1388.1292ms
+2025-07-09 15:03:31.523 +05:30 [INF] Request starting HTTP/1.1 POST http://localhost:5186/api/Auth/login - application/json 58
+2025-07-09 15:03:31.529 +05:30 [INF] CORS policy execution failed.
+2025-07-09 15:03:31.530 +05:30 [INF] Request origin http://localhost:5186 does not have permission to access the resource.
+2025-07-09 15:03:31.531 +05:30 [INF] Executing endpoint 'StudentRoutineTrackerApi.Controllers.AuthController.Login (StudentRoutineTrackerApi)'
+2025-07-09 15:03:31.531 +05:30 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Login(StudentRoutineTrackerApi.Models.LoginRequest) on controller StudentRoutineTrackerApi.Controllers.AuthController (StudentRoutineTrackerApi).
+2025-07-09 15:03:31.893 +05:30 [INF] User logged in: admin@example.com
+2025-07-09 15:03:31.894 +05:30 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType2`3[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2025-07-09 15:03:31.895 +05:30 [INF] Executed action StudentRoutineTrackerApi.Controllers.AuthController.Login (StudentRoutineTrackerApi) in 363.201ms
+2025-07-09 15:03:31.895 +05:30 [INF] Executed endpoint 'StudentRoutineTrackerApi.Controllers.AuthController.Login (StudentRoutineTrackerApi)'
+2025-07-09 15:03:31.895 +05:30 [INF] HTTP POST /api/Auth/login responded 200 in 367.9267 ms
+2025-07-09 15:03:31.895 +05:30 [INF] Request finished HTTP/1.1 POST http://localhost:5186/api/Auth/login - 200 null application/json; charset=utf-8 375.3809ms
+2025-07-09 15:04:00.122 +05:30 [INF] Request starting HTTP/1.1 GET http://localhost:5186/api/Auth/user - null null
+2025-07-09 15:04:00.165 +05:30 [INF] Executing endpoint 'StudentRoutineTrackerApi.Controllers.AuthController.GetCurrentUser (StudentRoutineTrackerApi)'
+2025-07-09 15:04:00.167 +05:30 [INF] Route matched with {action = "GetCurrentUser", controller = "Auth"}. Executing controller action with signature Microsoft.AspNetCore.Mvc.IActionResult GetCurrentUser() on controller StudentRoutineTrackerApi.Controllers.AuthController (StudentRoutineTrackerApi).
+2025-07-09 15:04:00.168 +05:30 [INF] Executing OkObjectResult, writing value of type '<>f__AnonymousType0`3[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e],[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]'.
+2025-07-09 15:04:00.169 +05:30 [INF] Executed action StudentRoutineTrackerApi.Controllers.AuthController.GetCurrentUser (StudentRoutineTrackerApi) in 2.4134ms
+2025-07-09 15:04:00.169 +05:30 [INF] Executed endpoint 'StudentRoutineTrackerApi.Controllers.AuthController.GetCurrentUser (StudentRoutineTrackerApi)'
+2025-07-09 15:04:00.170 +05:30 [INF] HTTP GET /api/Auth/user responded 200 in 47.1169 ms
+2025-07-09 15:04:00.170 +05:30 [INF] Request finished HTTP/1.1 GET http://localhost:5186/api/Auth/user - 200 null application/json; charset=utf-8 47.85ms
+2025-07-09 15:04:17.387 +05:30 [INF] Application is shutting down...
