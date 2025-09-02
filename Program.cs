@@ -21,16 +21,25 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // ----- MongoDB -----
+var mongoSettings = builder.Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
+if (mongoSettings == null)
+{
+    throw new InvalidOperationException("MongoDB settings are not configured properly");
+}
+
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
-    var settings = builder.Configuration.GetSection("MongoDbSettings");
-    return new MongoClient(settings["ConnectionString"]);
+    var connectionString = mongoSettings.ConnectionString;
+    Log.Information("Connecting to MongoDB at: {ConnectionString}", 
+        connectionString.StartsWith("mongodb://localhost") ? "localhost" : "production");
+    return new MongoClient(connectionString);
 });
+
 builder.Services.AddScoped<IMongoDatabase>(sp =>
 {
     var client = sp.GetRequiredService<IMongoClient>();
-    var settings = builder.Configuration.GetSection("MongoDbSettings");
-    return client.GetDatabase(settings["DatabaseName"]);
+    var database = client.GetDatabase(mongoSettings.DatabaseName);
+    return database;
 });
 
 builder.Services.Configure<MongoDbSettings>(
@@ -54,6 +63,10 @@ builder.Services.AddCors(options =>
 
 // ----- JWT -----
 var jwtKey = builder.Configuration["JwtSettings:SecretKey"];
+if (string.IsNullOrEmpty(jwtKey))
+{
+    throw new InvalidOperationException("JWT secret key is not configured");
+}
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services.AddAuthentication(options =>
@@ -100,6 +113,11 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// Log environment and MongoDB connection info at startup
+Log.Information("Application Environment: {Environment}", 
+    app.Environment.EnvironmentName);
+Log.Information("MongoDB Database: {Database}", mongoSettings.DatabaseName);
 
 app.UseSerilogRequestLogging();
 

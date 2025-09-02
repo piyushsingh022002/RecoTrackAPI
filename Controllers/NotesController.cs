@@ -4,6 +4,7 @@ using StudentRoutineTrackerApi.Models;
 using StudentRoutineTrackerApi.Services.Interfaces;
 using System.Security.Claims;
 using YourApp.Models;
+using Serilog;
 
 namespace StudentRoutineTrackerApi.Controllers
 {
@@ -13,48 +14,53 @@ namespace StudentRoutineTrackerApi.Controllers
     public class NotesController : ControllerBase
     {
         private readonly INoteService _noteService;
+        private readonly ILogger<NotesController> _logger;
 
-        public NotesController(INoteService noteService)
+        public NotesController(INoteService noteService, ILogger<NotesController> logger)
         {
             _noteService = noteService;
+            _logger = logger;
         }
 
-        private string? GetUserId() => User.FindFirst("id")?.Value;
+        private string? GetUserId() => User.FindFirst("userId")?.Value;
 
         [HttpGet]
         public async Task<IActionResult> GetNotes()
         {
-            var userId = User.FindFirst("userId")?.Value;
+            var userId = GetUserId();
             if (userId is null) return Unauthorized();
 
+            _logger.LogInformation("User {UserId} requested all notes at {Timestamp}", userId, DateTime.UtcNow);
             var notes = await _noteService.GetNotesAsync(userId);
+            _logger.LogInformation("Returning {Count} notes for user {UserId}", notes.Count, userId);
             return Ok(notes);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetNote(string id)
         {
-            var userId = User.FindFirst("userId")?.Value;
+            var userId = GetUserId();
             if (userId is null) return Unauthorized();
 
+            _logger.LogInformation("User {UserId} requested note {NoteId} at {Timestamp}", userId, id, DateTime.UtcNow);
             var note = await _noteService.GetNoteByIdAsync(id, userId);
-            return note is null ? NotFound() : Ok(note);
+            if (note is null)
+            {
+                _logger.LogWarning("Note {NoteId} not found for user {UserId}", id, userId);
+                return NotFound();
+            }
+            
+            _logger.LogInformation("Successfully retrieved note {NoteId} for user {UserId}", id, userId);
+            return Ok(note);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateNote([FromBody] NoteCreateDto noteDto)
         {
-            // var userId = GetUserId();
-            // Console.WriteLine("USER ID: " + userId);
-            // if (userId is null) return Unauthorized();
-
-            // note.UserId = userId;
-            // note.CreatedAt = DateTime.UtcNow;
-            // note.UpdatedAt = DateTime.UtcNow;
-
-            var userId = User.FindFirst("userId")?.Value;
+            var userId = GetUserId();
             if(string.IsNullOrEmpty(userId))
             {
+                _logger.LogWarning("Create note attempt with invalid user ID");
                 return Unauthorized("Invalid or missing user ID in token.");
             }
 
@@ -69,31 +75,51 @@ namespace StudentRoutineTrackerApi.Controllers
                 UpdatedAt = DateTime.UtcNow
             };
 
+            _logger.LogInformation("User {UserId} creating new note with title '{Title}' at {Timestamp}", 
+                userId, note.Title, DateTime.UtcNow);
+
             await _noteService.CreateNoteAsync(note);
-            // return StatusCode(201);
+            _logger.LogInformation("Successfully created note {NoteId} for user {UserId}", note.Id, userId);
             return Ok(note);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateNote(string id, [FromBody] Note updatedNote)
         {
-            var userId = User.FindFirst("userId")?.Value;
+            var userId = GetUserId();
             if (userId is null) return Unauthorized();
 
             updatedNote.Id = id;
+            _logger.LogInformation("User {UserId} updating note {NoteId} at {Timestamp}", userId, id, DateTime.UtcNow);
 
             var success = await _noteService.UpdateNoteAsync(updatedNote, userId);
-            return success ? NoContent() : NotFound();
+            if (!success)
+            {
+                _logger.LogWarning("Failed to update note {NoteId} for user {UserId}", id, userId);
+                return NotFound();
+            }
+
+            _logger.LogInformation("Successfully updated note {NoteId} for user {UserId}", id, userId);
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteNote(string id)
         {
-            var userId = User.FindFirst("userId")?.Value;
+            var userId = GetUserId();
             if (userId is null) return Unauthorized();
 
+            _logger.LogInformation("User {UserId} deleting note {NoteId} at {Timestamp}", userId, id, DateTime.UtcNow);
+
             var success = await _noteService.DeleteNoteAsync(id, userId);
-            return success ? NoContent() : NotFound();
+            if (!success)
+            {
+                _logger.LogWarning("Failed to delete note {NoteId} for user {UserId}", id, userId);
+                return NotFound();
+            }
+
+            _logger.LogInformation("Successfully deleted note {NoteId} for user {UserId}", id, userId);
+            return NoContent();
         }
     }
 }
