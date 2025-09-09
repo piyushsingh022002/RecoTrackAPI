@@ -1,4 +1,4 @@
-name: PR Test and Validate
+name: PR Pipeline - Build, Test, Deploy Gate
 
 on:
   pull_request:
@@ -6,26 +6,50 @@ on:
       - main
 
 jobs:
-  test:
+  build:
+    name: 🔨 Build
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Show Triggering Branch
-        run: echo "Running tests for PR from branch:${{ github.head_ref }} into ${{ github.base_ref }}"
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x' # Adjust if you're using a different version
+          dotnet-version: '8.0.x'
 
       - name: Restore Dependencies
         run: dotnet restore
 
-      - name: Build
+      - name: Build Solution
         run: dotnet build --no-restore --configuration Release
+
+  test:
+    name: ✅ Test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
 
       - name: Run Tests
         run: dotnet test --no-build --verbosity normal
+
+  deploy:
+    name: 🚀 Deploy (Approval Required)
+    runs-on: ubuntu-latest
+    needs: test
+    environment:
+      name: staging
+      url: https://your-app.render.com
+    steps:
+      - name: Confirm Deployment
+        run: echo "✅ Code passed all checks and is ready to deploy."
