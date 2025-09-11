@@ -49,7 +49,7 @@ jobs:
     needs: test
     environment:
       name: staging
-      url: https://your-app.render.com
+      url: https://studentroutinetrackerapi.onrender.com
     steps:
       - name: Confirm Deployment
         run: echo "✅ Code passed all checks and is ready to deploy."
