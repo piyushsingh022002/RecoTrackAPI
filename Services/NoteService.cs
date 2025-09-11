@@ -1,3 +1,4 @@
+using StudentRoutineTrackerApi.DTOs;
 using StudentRoutineTrackerApi.Models;
 using StudentRoutineTrackerApi.Repositories.Interfaces;
 using StudentRoutineTrackerApi.Services.Interfaces;
@@ -35,5 +36,23 @@ namespace StudentRoutineTrackerApi.Services
 
         public async Task<bool> DeleteNoteAsync(string id, string userId) =>
             await _noteRepository.DeleteNoteAsync(id, userId);
+
+        public async Task<List<NoteActivityDto>> GetNoteActivityAsync(string userId, DateTime startDate, DateTime endDate)
+        {
+            // You may want to inject IActivityRepository instead for separation, but for now, call NoteRepository if it implements the method
+            if (_noteRepository is IActivityRepository activityRepo)
+                return await activityRepo.GetNoteActivityAsync(userId, startDate, endDate);
+            throw new NotImplementedException("Note activity not implemented in repository");
+        }
+
+        public async Task<List<Note>> GetNotesByDateAsync(string userId, DateTime date)
+        {
+            return await _noteRepository.GetNotesByDateAsync(userId, date);
+        }
+
+        public async Task<int> GetNoteStreakAsync(string userId)
+        {
+            return await _noteRepository.GetNoteStreakAsync(userId);
+        }
     }
 }
