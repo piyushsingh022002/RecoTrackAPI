@@ -47,6 +47,8 @@ builder.Services.Configure<MongoDbSettings>(
 builder.Services.AddSingleton<IMongoDbService, MongoDbService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IActivityService, ActivityService>();
+builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 
 
 // ----- CORS -----
