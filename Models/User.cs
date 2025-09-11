@@ -17,5 +17,13 @@ namespace StudentRoutineTrackerApi.Models
 
         [BsonElement("passwordHash")]
         public string PasswordHash { get; set; } = string.Empty;
+
+        // Default value set in constructor
+        public DateTime RegisteredAt { get; set; }
+
+        public User()
+        {
+            RegisteredAt = DateTime.UtcNow; // or DateTime.Now depending on your preference
+        }
     }
 }
