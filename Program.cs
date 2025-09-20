@@ -4,6 +4,7 @@ using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using Serilog;
 using StudentRoutineTrackerApi.Configurations;
+using StudentRoutineTrackerApi.Extensions;
 using StudentRoutineTrackerApi.Repositories;
 using StudentRoutineTrackerApi.Repositories.Interfaces;
 using StudentRoutineTrackerApi.Services;
@@ -128,6 +129,7 @@ Log.Information("Application Environment: {Environment}",
 Log.Information("MongoDB Database: {Database}", mongoSettings.DatabaseName);
 
 app.UseSerilogRequestLogging();
+app.UseRequestTiming();
 
 app.UseCors("FrontendPolicy");
 
