@@ -1,14 +1,8 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using MongoDB.Driver;
-using Serilog;
 using StudentRoutineTrackerApi.Configurations;
 using StudentRoutineTrackerApi.Repositories;
 using StudentRoutineTrackerApi.Repositories.Interfaces;
 using StudentRoutineTrackerApi.Services;
 using StudentRoutineTrackerApi.Services.Interfaces;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +14,8 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 builder.Host.UseSerilog();
 
+//Custom Middleware for Log the request time
+app.UseRequestTiming();
 // ----- MongoDB -----
 var mongoSettings = builder.Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
 if (mongoSettings == null)
