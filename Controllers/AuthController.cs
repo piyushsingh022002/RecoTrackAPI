@@ -29,7 +29,7 @@ namespace StudentRoutineTrackerApi.Controllers
         [HttpGet("user")]
         public IActionResult GetCurrentUser()
         {
-            var userId = User.FindFirst("userId")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
             var name = User.FindFirst(ClaimTypes.Name)?.Value;
 

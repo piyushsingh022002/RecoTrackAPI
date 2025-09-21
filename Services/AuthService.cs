@@ -1,9 +1,7 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using StudentRoutineTrackerApi.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace StudentRoutineTrackerApi.Services
@@ -15,7 +13,7 @@ namespace StudentRoutineTrackerApi.Services
         public AuthService(IConfiguration configuration)
         {
             _jwtKey = configuration["JwtSettings:SecretKey"]!;
-            Console.WriteLine("GENERATOR JWT KEY: " + _jwtKey);
+            //Console.WriteLine("GENERATOR JWT KEY: " + _jwtKey);
         }
 
         public string HashPassword(string password)
@@ -33,21 +31,20 @@ namespace StudentRoutineTrackerApi.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            
-
-
-            var claims = new[]
+            var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
-                new Claim("userId", user.Id)
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email)
             };
 
             var token = new JwtSecurityToken(
+                issuer:"RecoTrackAPI",
+                audience:"RecoTrackWeb",
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(7),
-                signingCredentials: creds);
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: creds
+                );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
