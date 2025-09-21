@@ -22,7 +22,7 @@ namespace StudentRoutineTrackerApi.Controllers
             _logger = logger;
         }
 
-        private string? GetUserId() => User.FindFirst("userId")?.Value;
+        private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         [HttpGet]
         public async Task<IActionResult> GetNotes()
