@@ -42,26 +42,18 @@ namespace StudentRoutineTrackerApi.Controllers
 
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest? request)
         {
-            if (request.Password != request.ConfirmPassword)
-                return BadRequest(new { Message = "Passwords do not match" });
+            if (request is null)
+                return BadRequest(new { Message = "Request body cannot be null" });
 
-            var existingUser = await _userRepository.GetByEmailAsync(request.Email);
-            if (existingUser != null)
-                return BadRequest(new { Message = "Email is already registered" });
+            var result = await _authService.RegisterAsync(request);
 
-            var user = new User
-            {
-                Username = request.Username,
-                Email = request.Email,
-                PasswordHash = _authService.HashPassword(request.Password)
-            };
-
-            await _userRepository.CreateUserAsync(user);
-            _logger.LogInformation($"User registered with email: {request.Email}");
+            if (!result.Success)
+                return BadRequest(new { Message = result.ErrorMessage });
 
             return Ok(new { Message = "User registered successfully" });
+
         }
 
         [HttpPost("login")]
