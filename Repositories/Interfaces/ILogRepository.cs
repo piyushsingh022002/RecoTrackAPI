@@ -6,6 +6,7 @@ namespace StudentRoutineTrackerApi.Repositories.Interfaces
     {
         void Insert(LogEntry entry);
         Task InsertAsync(LogEntry entry);
+        Task ClearLogsAsync();
 
     }
 }

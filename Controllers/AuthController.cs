@@ -1,9 +1,10 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentRoutineTrackerApi.Models;
 using StudentRoutineTrackerApi.Repositories;
+using StudentRoutineTrackerApi.Repositories.Interfaces;
 using StudentRoutineTrackerApi.Services;
+using System.Security.Claims;
 
 namespace StudentRoutineTrackerApi.Controllers
 {
@@ -14,15 +15,18 @@ namespace StudentRoutineTrackerApi.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
+        private readonly ILogRepository _logRepository;
 
         public AuthController(
             IUserRepository userRepository,
             IAuthService authService,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            ILogRepository logRepository)
         {
             _userRepository = userRepository;
             _authService = authService;
             _logger = logger;
+            _logRepository = logRepository;
         }
 
         [Authorize]
@@ -71,7 +75,6 @@ namespace StudentRoutineTrackerApi.Controllers
                 return Unauthorized(new { Message = "Invalid credentials" });
 
             var token = _authService.GenerateJwtToken(user);
-            Console.WriteLine(token);
             _logger.LogInformation($"User logged in: {request.Email}");
 
             return Ok(new
@@ -80,6 +83,22 @@ namespace StudentRoutineTrackerApi.Controllers
                 Username = user.Username,
                 Email = user.Email
             });
+        }
+
+        //Clearing the Logs 
+        [HttpDelete("clear")]
+        public async Task<IActionResult> ClearLogs()
+        {
+            //only user with UserName Piyush Singh
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+
+            if (userName == "Piyush Singh")
+            {
+                await _logRepository.ClearLogsAsync();
+                return Ok(new { message = "Logs cleared successfully." });
+            }
+
+            return Forbid(); // 403 if not authorized
         }
     }
 }

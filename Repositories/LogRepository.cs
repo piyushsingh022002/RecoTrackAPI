@@ -21,5 +21,9 @@ namespace StudentRoutineTrackerApi.Repositories
         public void Insert(LogEntry entry) => _logs.InsertOne(entry);
 
         public Task InsertAsync(LogEntry entry) => _logs.InsertOneAsync(entry);
+
+        //deleting all the logs from the collection if needed
+        public async Task ClearLogsAsync() =>
+        await _logs.DeleteManyAsync(Builders<LogEntry>.Filter.Empty);
     }
 }
