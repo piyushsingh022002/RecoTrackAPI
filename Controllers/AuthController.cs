@@ -1,9 +1,10 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StudentRoutineTrackerApi.Models;
 using StudentRoutineTrackerApi.Repositories;
+using StudentRoutineTrackerApi.Repositories.Interfaces;
 using StudentRoutineTrackerApi.Services;
+using System.Security.Claims;
 
 namespace StudentRoutineTrackerApi.Controllers
 {
@@ -14,22 +15,25 @@ namespace StudentRoutineTrackerApi.Controllers
         private readonly IUserRepository _userRepository;
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
+        private readonly ILogRepository _logRepository;
 
         public AuthController(
             IUserRepository userRepository,
             IAuthService authService,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            ILogRepository logRepository)
         {
             _userRepository = userRepository;
             _authService = authService;
             _logger = logger;
+            _logRepository = logRepository;
         }
 
         [Authorize]
         [HttpGet("user")]
         public IActionResult GetCurrentUser()
         {
-            var userId = User.FindFirst("userId")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
             var name = User.FindFirst(ClaimTypes.Name)?.Value;
 
@@ -38,48 +42,53 @@ namespace StudentRoutineTrackerApi.Controllers
 
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest? request)
         {
-            if (request.Password != request.ConfirmPassword)
-                return BadRequest(new { Message = "Passwords do not match" });
+            if (request is null)
+                return BadRequest(new { Message = "Request body cannot be null" });
 
-            var existingUser = await _userRepository.GetByEmailAsync(request.Email);
-            if (existingUser != null)
-                return BadRequest(new { Message = "Email is already registered" });
+            var result = await _authService.RegisterAsync(request);
 
-            var user = new User
-            {
-                Username = request.Username,
-                Email = request.Email,
-                PasswordHash = _authService.HashPassword(request.Password)
-            };
-
-            await _userRepository.CreateUserAsync(user);
-            _logger.LogInformation($"User registered with email: {request.Email}");
+            if (!result.Success)
+                return BadRequest(new { Message = result.ErrorMessage });
 
             return Ok(new { Message = "User registered successfully" });
+
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = await _userRepository.GetByEmailAsync(request.Email);
-            if (user == null)
-                return Unauthorized(new { Message = "Invalid credentials" });
+            if (request is null)
+                return BadRequest(new { Message = "Request body cannot be null" });
 
-            if (!_authService.VerifyPassword(request.Password, user.PasswordHash))
-                return Unauthorized(new { Message = "Invalid credentials" });
+            var result = await _authService.LoginAsync(request);
 
-            var token = _authService.GenerateJwtToken(user);
-            Console.WriteLine(token);
-            _logger.LogInformation($"User logged in: {request.Email}");
+            if (!result.Success)
+                return Unauthorized(new { Message = result.ErrorMessage });
 
             return Ok(new
             {
-                Token = token,
-                Username = user.Username,
-                Email = user.Email
+                Token = result.Token,
+                Username = result.Username,
+                Email = result.Email
             });
+        }
+
+        //Clearing the Logs 
+        [HttpDelete("clearMongoLogs")]
+        public async Task<IActionResult> ClearLogs()
+        {
+            //only user with UserName Piyush Singh
+            var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+
+            if (userName == "Piyush Singh")
+            {
+                await _logRepository.ClearLogsAsync();
+                return Ok(new { message = "Logs cleared successfully." });
+            }
+
+            return Forbid(); // 403 if not authorized
         }
     }
 }
