@@ -86,3 +86,5 @@ artifacts/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
+obj/Debug/net8.0/StudentRoutineTrackerApi.AssemblyInfo.cs
+obj/Debug/net8.0/StudentRoutineTrackerApi.AssemblyInfoInputs.cache
