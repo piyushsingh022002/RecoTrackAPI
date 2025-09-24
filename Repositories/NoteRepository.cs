@@ -16,27 +16,70 @@ namespace StudentRoutineTrackerApi.Repositories
             _notes = database.GetCollection<Note>("Notes");
         }
 
-        public async Task<List<Note>> GetNotesByUserIdAsync(string userId) =>
-            await _notes.Find(n => n.UserId == userId).SortByDescending(n => n.CreatedAt).ToListAsync();
+        public async Task<List<Note>> GetNotesByUserIdAsync(string userId)
+        {
+            //Todo:: No need to verify the userId here if it's already verified in the controller
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
 
-        public async Task<Note?> GetNoteByIdAsync(string id, string userId) =>
-            await _notes.Find(n => n.Id == id && n.UserId == userId).FirstOrDefaultAsync();
+            return await _notes
+                .Find(n => n.UserId == userId)
+                .SortByDescending(n => n.CreatedAt)
+                .ToListAsync();
+        }
+        public async Task<Note?> GetNoteByIdAsync(string id, string userId)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
 
-        public async Task CreateNoteAsync(Note note) =>
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+
+            return await _notes
+                .Find(n => n.Id == id && n.UserId == userId)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task CreateNoteAsync(Note note)
+        {
+            if (note == null)
+                throw new ArgumentNullException(nameof(note), "Note cannot be null.");
+
             await _notes.InsertOneAsync(note);
+        }
+
 
         public async Task<bool> UpdateNoteAsync(Note note)
         {
+            if (note == null)
+                throw new ArgumentNullException(nameof(note));
+
+            if (string.IsNullOrWhiteSpace(note.Id) || string.IsNullOrWhiteSpace(note.UserId))
+                throw new ArgumentException("Note ID and User ID must be provided.");
+
             note.UpdatedAt = DateTime.UtcNow;
-            var result = await _notes.ReplaceOneAsync(n => n.Id == note.Id && n.UserId == note.UserId, note);
+
+            var result = await _notes.ReplaceOneAsync(
+                n => n.Id == note.Id && n.UserId == note.UserId,
+                note
+            );
+
             return result.ModifiedCount > 0;
         }
 
+
         public async Task<bool> DeleteNoteAsync(string id, string userId)
         {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
+
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+
             var result = await _notes.DeleteOneAsync(n => n.Id == id && n.UserId == userId);
             return result.DeletedCount > 0;
         }
+
 
         public async Task<List<NoteActivityDto>> GetNoteActivityAsync(string userId, DateTime startDate, DateTime endDate)
         {
