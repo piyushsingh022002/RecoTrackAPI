@@ -59,26 +59,24 @@ namespace StudentRoutineTrackerApi.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var user = await _userRepository.GetByEmailAsync(request.Email);
-            if (user == null)
-                return Unauthorized(new { Message = "Invalid credentials" });
+            if (request is null)
+                return BadRequest(new { Message = "Request body cannot be null" });
 
-            if (!_authService.VerifyPassword(request.Password, user.PasswordHash))
-                return Unauthorized(new { Message = "Invalid credentials" });
+            var result = await _authService.LoginAsync(request);
 
-            var token = _authService.GenerateJwtToken(user);
-            _logger.LogInformation($"User logged in: {request.Email}");
+            if (!result.Success)
+                return Unauthorized(new { Message = result.ErrorMessage });
 
             return Ok(new
             {
-                Token = token,
-                Username = user.Username,
-                Email = user.Email
+                Token = result.Token,
+                Username = result.Username,
+                Email = result.Email
             });
         }
 
         //Clearing the Logs 
-        [HttpDelete("clear")]
+        [HttpDelete("clearMongoLogs")]
         public async Task<IActionResult> ClearLogs()
         {
             //only user with UserName Piyush Singh

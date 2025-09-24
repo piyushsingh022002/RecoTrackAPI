@@ -44,7 +44,23 @@ namespace StudentRoutineTrackerApi.Services
 
             return RegisterResult.Ok();
         }
-        
+
+        public async Task<LoginResult> LoginAsync(LoginRequest request)
+        {
+            var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+                return LoginResult.Fail("Invalid credentials");
+
+            if (!VerifyPassword(request.Password, user.PasswordHash))
+                return LoginResult.Fail("Invalid credentials");
+
+            var token = GenerateJwtToken(user);
+
+            _logger.LogInformation("User logged in: {Email}", user.Email);
+
+            return LoginResult.SuccessResult(token, user.Username, user.Email);
+        }
+
 
         public string HashPassword(string password)
         {
