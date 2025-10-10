@@ -111,6 +111,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddControllers();
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<INoteService, NoteService>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+builder.Services.AddSignalR();
 
 // ----- Swagger -----
 builder.Services.AddEndpointsApiExplorer();
@@ -151,6 +155,8 @@ app.UseAuthorization();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+
 app.MapControllers();
+app.MapHub<StudentRoutineTrackerApi.Hubs.NotificationHub>("/notificationHub");
 
 app.Run();

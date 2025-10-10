@@ -16,11 +16,19 @@ namespace StudentRoutineTrackerApi.Controllers
     {
         private readonly INoteService _noteService;
         private readonly ILogger<NotesController> _logger;
+        private readonly INotificationService _notificationService;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<StudentRoutineTrackerApi.Hubs.NotificationHub> _notificationHub;
 
-        public NotesController(INoteService noteService, ILogger<NotesController> logger)
+        public NotesController(
+            INoteService noteService,
+            ILogger<NotesController> logger,
+            INotificationService notificationService,
+            Microsoft.AspNetCore.SignalR.IHubContext<StudentRoutineTrackerApi.Hubs.NotificationHub> notificationHub)
         {
             _noteService = noteService;
             _logger = logger;
+            _notificationService = notificationService;
+            _notificationHub = notificationHub;
         }
 
         private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -113,6 +121,11 @@ namespace StudentRoutineTrackerApi.Controllers
 
                 await _noteService.CreateNoteAsync(note);
 
+                // Send notification via SignalR and store in DB
+                var message = $"{note.Title} is created successfully at {note.CreatedAt:yyyy-MM-dd HH:mm:ss}";
+                await _notificationService.SendNotificationAsync(userId, message);
+                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { message });
+
                 _logger.LogInformation("Successfully created note {NoteId} for user {UserId} at {Timestamp}",
                     note.Id, userId, DateTime.UtcNow);
 
@@ -154,6 +167,11 @@ namespace StudentRoutineTrackerApi.Controllers
                     return NotFound();
                 }
 
+                // Send notification via SignalR and store in DB
+                var message = $"{updateDto.Title} is modified at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
+                await _notificationService.SendNotificationAsync(userId, message);
+                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { message });
+
                 _logger.LogInformation("Note {NoteId} successfully updated for user {UserId}", id, userId);
                 return NoContent();
             }
@@ -185,6 +203,7 @@ namespace StudentRoutineTrackerApi.Controllers
 
             try
             {
+                var note = await _noteService.GetNoteByIdAsync(id, userId);
                 var success = await _noteService.DeleteNoteAsync(id, userId);
 
                 if (!success)
@@ -192,6 +211,11 @@ namespace StudentRoutineTrackerApi.Controllers
                     _logger.LogWarning("Note {NoteId} not found or unauthorized deletion attempt by user {UserId}", id, userId);
                     return NotFound();
                 }
+
+                // Send notification via SignalR and store in DB
+                var message = note != null ? $"{note.Title} is deleted" : $"Note is deleted";
+                await _notificationService.SendNotificationAsync(userId, message);
+                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { message });
 
                 _logger.LogInformation("Note {NoteId} successfully deleted by user {UserId}", id, userId);
                 return NoContent();
