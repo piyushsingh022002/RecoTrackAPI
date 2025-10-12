@@ -67,8 +67,7 @@ builder.Host.UseSerilog((hostingContext, services, loggerConfiguration) =>
         .WriteTo.Async(a => a.Sink(new StudentRoutineTrackerApi.Logging.MongoSerilogSink(repo)));
 });
 
-// ----- CORS -----
-var frontendURL = builder.Configuration["FrontendURL"];
+// ----- CORS ----
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
