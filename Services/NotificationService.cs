@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.SignalR;
+using StudentRoutineTrackerApi.Hubs;
 using StudentRoutineTrackerApi.Models;
 using StudentRoutineTrackerApi.Repositories.Interfaces;
 using StudentRoutineTrackerApi.Services.Interfaces;
@@ -9,13 +11,15 @@ namespace StudentRoutineTrackerApi.Services
     public class NotificationService : INotificationService
     {
         private readonly INotificationRepository _notificationRepository;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public NotificationService(INotificationRepository notificationRepository)
+        public NotificationService(INotificationRepository notificationRepository, IHubContext<NotificationHub> hubContext)
         {
             _notificationRepository = notificationRepository;
+            _hubContext = hubContext;
         }
 
-        public async Task SendNotificationAsync(string userId, string message)
+        public async Task<Notification> SendNotificationAsync(string userId, string message)
         {
             var notification = new Notification
             {
@@ -23,7 +27,9 @@ namespace StudentRoutineTrackerApi.Services
                 Message = message,
                 CreatedAt = DateTime.UtcNow
             };
+
             await _notificationRepository.AddNotificationAsync(notification);
+            return notification;
         }
 
         public async Task<List<Notification>> GetNotificationsAsync(string userId)

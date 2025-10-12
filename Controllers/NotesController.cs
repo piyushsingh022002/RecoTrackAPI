@@ -123,8 +123,8 @@ namespace StudentRoutineTrackerApi.Controllers
 
                 // Send notification via SignalR and store in DB
                 var message = $"{note.Title} is created successfully at {note.CreatedAt:yyyy-MM-dd HH:mm:ss}";
-                await _notificationService.SendNotificationAsync(userId, message);
-                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { message });
+                var notifications = await _notificationService.SendNotificationAsync(userId, message);
+                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification",new object []{ notifications});
 
                 _logger.LogInformation("Successfully created note {NoteId} for user {UserId} at {Timestamp}",
                     note.Id, userId, DateTime.UtcNow);
@@ -169,8 +169,8 @@ namespace StudentRoutineTrackerApi.Controllers
 
                 // Send notification via SignalR and store in DB
                 var message = $"{updateDto.Title} is modified at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
-                await _notificationService.SendNotificationAsync(userId, message);
-                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { message });
+               var notifications = await _notificationService.SendNotificationAsync(userId, message);
+                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
 
                 _logger.LogInformation("Note {NoteId} successfully updated for user {UserId}", id, userId);
                 return NoContent();
@@ -214,8 +214,8 @@ namespace StudentRoutineTrackerApi.Controllers
 
                 // Send notification via SignalR and store in DB
                 var message = note != null ? $"{note.Title} is deleted" : $"Note is deleted";
-                await _notificationService.SendNotificationAsync(userId, message);
-                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { message });
+                var notifications = await _notificationService.SendNotificationAsync(userId, message);
+                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
 
                 _logger.LogInformation("Note {NoteId} successfully deleted by user {UserId}", id, userId);
                 return NoContent();
