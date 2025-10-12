@@ -6,7 +6,7 @@ namespace StudentRoutineTrackerApi.Services.Interfaces
 {
     public interface INotificationService
     {
-        Task SendNotificationAsync(string userId, string message);
+        Task<Notification> SendNotificationAsync(string userId, string message);
         Task<List<Notification>> GetNotificationsAsync(string userId);
     }
 }
