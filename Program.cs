@@ -1,15 +1,16 @@
-﻿using StudentRoutineTrackerApi.Repositories.Interfaces;
-using StudentRoutineTrackerApi.Services.Interfaces;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using StudentRoutineTrackerApi.Configurations;
-using StudentRoutineTrackerApi.Repositories;
-using StudentRoutineTrackerApi.Services;
-using StudentRoutineTrackerApi.Extensions;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
-using System.Text;
 using Serilog;
+using StudentRoutineTrackerApi.Configurations;
+using StudentRoutineTrackerApi.Extensions;
+using StudentRoutineTrackerApi.Repositories;
+using StudentRoutineTrackerApi.Repositories.Interfaces;
+using StudentRoutineTrackerApi.Services;
+using StudentRoutineTrackerApi.Services.Interfaces;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -111,6 +112,8 @@ builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<INoteService, NoteService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddSingleton<IUserIdProvider, SignalRUserIdProvider>();
+
 
 builder.Services.AddSignalR();
 
