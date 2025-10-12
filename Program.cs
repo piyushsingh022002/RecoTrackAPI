@@ -1,4 +1,4 @@
-using StudentRoutineTrackerApi.Repositories.Interfaces;
+﻿using StudentRoutineTrackerApi.Repositories.Interfaces;
 using StudentRoutineTrackerApi.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using StudentRoutineTrackerApi.Configurations;
@@ -74,14 +74,13 @@ builder.Services.AddCors(options =>
     options.AddPolicy("FrontendPolicy", policy =>
     {
         policy.WithOrigins(
-            frontendURL ?? string.Empty, // from config, if set
-            "http://localhost:5173",    // local dev
-            "https://studentroutinetrackerapi.onrender.com", // deployed backend (for testing, if needed)
-            "https://your-frontend-domain.com" // <-- add your deployed frontend domain here
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod();
-        // .AllowCredentials(); // Uncomment if you use cookies/auth
+    "https://recotrackpiyushsingh.vercel.app", // ✅ Your actual frontend domain
+    "http://localhost:5173"
+)
+.AllowAnyHeader()
+.AllowAnyMethod()
+.AllowCredentials(); // ✅ THIS IS MANDATORY for SignalR + JWT
+
     });
 });
 
