@@ -20,10 +20,9 @@
     </PackageReference>
   </ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\RecoTrackApi.csproj" />
-		<ProjectReference Include="..\RecoTrackApi\RecoTrackApi.csproj" />
-	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RecoTrackApi\RecoTrackApi.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <Using Include="System.Net" />
