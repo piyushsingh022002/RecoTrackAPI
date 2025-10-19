@@ -2,9 +2,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudentRoutineTrackerApi", "StudentRoutineTrackerApi.csproj", "{E3EB4205-0D82-22D5-E9EE-E8A5ADEBD5D6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecoTrackApi", "RecoTrackApi\RecoTrackApi.csproj", "{017B2F9E-9539-5DC0-5A7B-E5865A538018}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StudentRoutineTracketApi.ControllersTest", "..\StudentRoutineTracketApi.ControllersTest\StudentRoutineTracketApi.ControllersTest.csproj", "{A2A0D7EB-E138-4163-92E9-705868537441}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecoTrackApi.ControllersTest", "RecoTrackApi.ControllersTest\RecoTrackApi.ControllersTest.csproj", "{668ECE69-D3EE-2EB1-7311-524685E9E0C5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,14 +12,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E3EB4205-0D82-22D5-E9EE-E8A5ADEBD5D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E3EB4205-0D82-22D5-E9EE-E8A5ADEBD5D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E3EB4205-0D82-22D5-E9EE-E8A5ADEBD5D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E3EB4205-0D82-22D5-E9EE-E8A5ADEBD5D6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A2A0D7EB-E138-4163-92E9-705868537441}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A2A0D7EB-E138-4163-92E9-705868537441}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A2A0D7EB-E138-4163-92E9-705868537441}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A2A0D7EB-E138-4163-92E9-705868537441}.Release|Any CPU.Build.0 = Release|Any CPU
+		{017B2F9E-9539-5DC0-5A7B-E5865A538018}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{017B2F9E-9539-5DC0-5A7B-E5865A538018}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{017B2F9E-9539-5DC0-5A7B-E5865A538018}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{017B2F9E-9539-5DC0-5A7B-E5865A538018}.Release|Any CPU.Build.0 = Release|Any CPU
+		{668ECE69-D3EE-2EB1-7311-524685E9E0C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{668ECE69-D3EE-2EB1-7311-524685E9E0C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{668ECE69-D3EE-2EB1-7311-524685E9E0C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{668ECE69-D3EE-2EB1-7311-524685E9E0C5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
