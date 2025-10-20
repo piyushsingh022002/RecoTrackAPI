@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 
-namespace StudentRoutineTrackerApi.Hubs
+namespace RecoTrackApi.Hubs
 {
     public class NotificationHub : Hub
     {

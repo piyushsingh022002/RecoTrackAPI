@@ -1,8 +1,8 @@
 using MongoDB.Driver;
-using StudentRoutineTrackerApi.Models;
-using StudentRoutineTrackerApi.Services;
+using RecoTrackApi.Models;
+using RecoTrackApi.Services;
 
-namespace StudentRoutineTrackerApi.Repositories
+namespace RecoTrackApi.Repositories
 {
     public class UserRepository : IUserRepository
     {

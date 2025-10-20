@@ -1,6 +1,6 @@
-﻿using StudentRoutineTrackerApi.Models;
+﻿using RecoTrackApi.Models;
 
-namespace StudentRoutineTrackerApi.Repositories.Interfaces
+namespace RecoTrackApi.Repositories.Interfaces
 {
     public interface ILogRepository
     {

@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.SignalR;
-using StudentRoutineTrackerApi.Hubs;
-using StudentRoutineTrackerApi.Models;
-using StudentRoutineTrackerApi.Repositories.Interfaces;
-using StudentRoutineTrackerApi.Services.Interfaces;
+using RecoTrackApi.Hubs;
+using RecoTrackApi.Models;
+using RecoTrackApi.Repositories.Interfaces;
+using RecoTrackApi.Services.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace StudentRoutineTrackerApi.Services
+namespace RecoTrackApi.Services
 {
     public class NotificationService : INotificationService
     {

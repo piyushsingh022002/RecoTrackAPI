@@ -1,12 +1,12 @@
 using Microsoft.IdentityModel.Tokens;
-using StudentRoutineTrackerApi.Controllers;
-using StudentRoutineTrackerApi.Models;
-using StudentRoutineTrackerApi.Repositories;
+using RecoTrackApi.Controllers;
+using RecoTrackApi.Models;
+using RecoTrackApi.Repositories;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace StudentRoutineTrackerApi.Services
+namespace RecoTrackApi.Services
 {
     public class AuthService : IAuthService
     {

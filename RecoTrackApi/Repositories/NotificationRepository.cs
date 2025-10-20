@@ -1,10 +1,10 @@
 using MongoDB.Driver;
-using StudentRoutineTrackerApi.Models;
-using StudentRoutineTrackerApi.Repositories.Interfaces;
+using RecoTrackApi.Models;
+using RecoTrackApi.Repositories.Interfaces;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace StudentRoutineTrackerApi.Repositories
+namespace RecoTrackApi.Repositories
 {
     public class NotificationRepository : INotificationRepository
     {

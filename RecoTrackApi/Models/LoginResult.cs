@@ -1,4 +1,4 @@
-﻿namespace StudentRoutineTrackerApi.Models
+﻿namespace RecoTrackApi.Models
 {
     public class LoginResult
     {

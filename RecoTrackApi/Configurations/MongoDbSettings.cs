@@ -1,4 +1,4 @@
-namespace StudentRoutineTrackerApi.Configurations
+namespace RecoTrackApi.Configurations
 {
     public class MongoDbSettings
     {

@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudentRoutineTrackerApi.DTOs;
-using StudentRoutineTrackerApi.Models;
-using StudentRoutineTrackerApi.Services.Interfaces;
+using RecoTrackApi.DTOs;
+using RecoTrackApi.Models;
+using RecoTrackApi.Services.Interfaces;
 using System.Security.Claims;
 using YourApp.Models;
 using Serilog;
 
-namespace StudentRoutineTrackerApi.Controllers
+namespace RecoTrackApi.Controllers
 {
     [Authorize]
     [ApiController]
@@ -17,13 +17,13 @@ namespace StudentRoutineTrackerApi.Controllers
         private readonly INoteService _noteService;
         private readonly ILogger<NotesController> _logger;
         private readonly INotificationService _notificationService;
-        private readonly Microsoft.AspNetCore.SignalR.IHubContext<StudentRoutineTrackerApi.Hubs.NotificationHub> _notificationHub;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<RecoTrackApi.Hubs.NotificationHub> _notificationHub;
 
         public NotesController(
             INoteService noteService,
             ILogger<NotesController> logger,
             INotificationService notificationService,
-            Microsoft.AspNetCore.SignalR.IHubContext<StudentRoutineTrackerApi.Hubs.NotificationHub> notificationHub)
+            Microsoft.AspNetCore.SignalR.IHubContext<RecoTrackApi.Hubs.NotificationHub> notificationHub)
         {
             _noteService = noteService;
             _logger = logger;

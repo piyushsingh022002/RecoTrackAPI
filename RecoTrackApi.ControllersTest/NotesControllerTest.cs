@@ -4,16 +4,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace StudentRoutineTracketApi.ControllersTest
+namespace RecoTrackApi.ControllersTest
 {
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
     using Moq;
     using Xunit;
-    using StudentRoutineTrackerApi.Controllers;
-    using StudentRoutineTrackerApi.DTOs;
-    using StudentRoutineTrackerApi.Models;
-    using StudentRoutineTrackerApi.Services.Interfaces;
+    using RecoTrackApi.Controllers;
+    using RecoTrackApi.DTOs;
+    using RecoTrackApi.Models;
+    using RecoTrackApi.Services.Interfaces;
     using Microsoft.AspNetCore.SignalR;
     using YourApp.Models;
     using System.Security.Claims;
@@ -25,7 +25,7 @@ namespace StudentRoutineTracketApi.ControllersTest
         private readonly Mock<INoteService> _noteServiceMock = new();
         private readonly Mock<ILogger<NotesController>> _loggerMock = new();
         private readonly Mock<INotificationService> _notificationServiceMock = new();
-        private readonly Mock<IHubContext<StudentRoutineTrackerApi.Hubs.NotificationHub>> _hubContextMock = new();
+        private readonly Mock<IHubContext<RecoTrackApi.Hubs.NotificationHub>> _hubContextMock = new();
         private readonly NotesController _controller;
 
         public NotesControllerTest()

@@ -2,7 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System;
 
-namespace StudentRoutineTrackerApi.Models
+namespace RecoTrackApi.Models
 {
     public class Notification
     {

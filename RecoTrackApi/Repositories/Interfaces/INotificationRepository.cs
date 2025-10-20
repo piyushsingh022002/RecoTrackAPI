@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using StudentRoutineTrackerApi.Models;
+using RecoTrackApi.Models;
 
-namespace StudentRoutineTrackerApi.Repositories.Interfaces
+namespace RecoTrackApi.Repositories.Interfaces
 {
     public interface INotificationRepository
     {

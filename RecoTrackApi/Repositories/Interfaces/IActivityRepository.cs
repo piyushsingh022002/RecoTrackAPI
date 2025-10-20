@@ -1,6 +1,6 @@
-using StudentRoutineTrackerApi.DTOs;
+using RecoTrackApi.DTOs;
 
-namespace StudentRoutineTrackerApi.Repositories.Interfaces
+namespace RecoTrackApi.Repositories.Interfaces
 {
     public interface IActivityRepository
     {
