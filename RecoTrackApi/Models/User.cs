@@ -1,7 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace StudentRoutineTrackerApi.Models
+namespace RecoTrackApi.Models
 {
     public class User
     {

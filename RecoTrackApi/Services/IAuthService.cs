@@ -1,6 +1,6 @@
-using StudentRoutineTrackerApi.Models;
+using RecoTrackApi.Models;
 
-namespace StudentRoutineTrackerApi.Services
+namespace RecoTrackApi.Services
 {
     public interface IAuthService
     {

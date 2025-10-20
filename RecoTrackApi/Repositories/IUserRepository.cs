@@ -1,6 +1,6 @@
-using StudentRoutineTrackerApi.Models;
+using RecoTrackApi.Models;
 
-namespace StudentRoutineTrackerApi.Repositories
+namespace RecoTrackApi.Repositories
 {
     public interface IUserRepository
     {

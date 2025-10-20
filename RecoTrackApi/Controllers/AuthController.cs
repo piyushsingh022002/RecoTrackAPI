@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudentRoutineTrackerApi.Models;
-using StudentRoutineTrackerApi.Repositories;
-using StudentRoutineTrackerApi.Repositories.Interfaces;
-using StudentRoutineTrackerApi.Services;
+using RecoTrackApi.Models;
+using RecoTrackApi.Repositories;
+using RecoTrackApi.Repositories.Interfaces;
+using RecoTrackApi.Services;
 using System.Security.Claims;
 
-namespace StudentRoutineTrackerApi.Controllers
+namespace RecoTrackApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

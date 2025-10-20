@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace StudentRoutineTracketApi.ControllersTest.Tests
+namespace RecoTrack.ServiceTests.Tests
 {
     public class IntegrationTest1
     {

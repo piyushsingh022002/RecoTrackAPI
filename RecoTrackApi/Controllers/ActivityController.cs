@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
-using StudentRoutineTrackerApi.DTOs;
-using StudentRoutineTrackerApi.Services.Interfaces;
+using RecoTrackApi.DTOs;
+using RecoTrackApi.Services.Interfaces;
 using System.Security.Claims;
 
-namespace StudentRoutineTrackerApi.Controllers
+namespace RecoTrackApi.Controllers
 {
     [Authorize]
     [ApiController]

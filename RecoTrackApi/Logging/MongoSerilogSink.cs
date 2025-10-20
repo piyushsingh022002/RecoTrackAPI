@@ -1,10 +1,10 @@
 ﻿using Serilog.Core;
 using Serilog.Events;
-using StudentRoutineTrackerApi.Repositories.Interfaces;
-using StudentRoutineTrackerApi.Models;
+using RecoTrackApi.Repositories.Interfaces;
+using RecoTrackApi.Models;
 
 
-namespace StudentRoutineTrackerApi.Logging
+namespace RecoTrackApi.Logging
 {
     public class MongoSerilogSink : ILogEventSink, IDisposable
     {

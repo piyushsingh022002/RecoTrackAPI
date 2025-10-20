@@ -1,6 +1,6 @@
 using MongoDB.Driver;
 
-namespace StudentRoutineTrackerApi.Services
+namespace RecoTrackApi.Services
 {
     public interface IMongoDbService
     {

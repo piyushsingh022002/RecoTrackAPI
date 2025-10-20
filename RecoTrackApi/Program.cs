@@ -3,13 +3,15 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
+using RecoTrack.Application.Interfaces;
+using RecoTrack.Infrastructure.services;
 using Serilog;
-using StudentRoutineTrackerApi.Configurations;
-using StudentRoutineTrackerApi.Extensions;
-using StudentRoutineTrackerApi.Repositories;
-using StudentRoutineTrackerApi.Repositories.Interfaces;
-using StudentRoutineTrackerApi.Services;
-using StudentRoutineTrackerApi.Services.Interfaces;
+using RecoTrackApi.Configurations;
+using RecoTrackApi.Extensions;
+using RecoTrackApi.Repositories;
+using RecoTrackApi.Repositories.Interfaces;
+using RecoTrackApi.Services;
+using RecoTrackApi.Services.Interfaces;
 using System.Text;
 
 
@@ -56,6 +58,9 @@ builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 
 builder.Services.AddSingleton<ILogRepository, LogRepository>();
 
+builder.Services.AddScoped<IAutomatedPrReviewService, AutomatedPrReviewService>();
+
+
 // ----- Serilog with Mongo Sink -----
 builder.Host.UseSerilog((hostingContext, services, loggerConfiguration) =>
 {
@@ -65,7 +70,7 @@ builder.Host.UseSerilog((hostingContext, services, loggerConfiguration) =>
         .Enrich.FromLogContext()
         .WriteTo.Console()
         .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
-        .WriteTo.Async(a => a.Sink(new StudentRoutineTrackerApi.Logging.MongoSerilogSink(repo)));
+        .WriteTo.Async(a => a.Sink(new RecoTrackApi.Logging.MongoSerilogSink(repo)));
 });
 
 // ----- CORS ----
@@ -158,6 +163,6 @@ app.UseSwaggerUI();
 
 
 app.MapControllers();
-app.MapHub<StudentRoutineTrackerApi.Hubs.NotificationHub>("/notificationHub");
+app.MapHub<RecoTrackApi.Hubs.NotificationHub>("/notificationHub");
 
 app.Run();

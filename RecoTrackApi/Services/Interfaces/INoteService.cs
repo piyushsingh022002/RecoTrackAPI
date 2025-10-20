@@ -1,8 +1,8 @@
-using StudentRoutineTrackerApi.DTOs;
-using StudentRoutineTrackerApi.Models;
+using RecoTrackApi.DTOs;
+using RecoTrackApi.Models;
 using YourApp.Models;
 
-namespace StudentRoutineTrackerApi.Services.Interfaces
+namespace RecoTrackApi.Services.Interfaces
 {
     public interface INoteService
     {

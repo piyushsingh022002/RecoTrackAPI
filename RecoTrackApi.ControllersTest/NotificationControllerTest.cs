@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using StudentRoutineTrackerApi.Controllers;
-using StudentRoutineTrackerApi.Services.Interfaces;
-using StudentRoutineTrackerApi.Models;
+using RecoTrackApi.Controllers;
+using RecoTrackApi.Services.Interfaces;
+using RecoTrackApi.Models;
 using System.Collections.Generic;
 
-namespace StudentRoutineTracketApi.ControllersTest
+namespace RecoTrackApi.ControllersTest
 {
     public class NotificationControllerTest
     {

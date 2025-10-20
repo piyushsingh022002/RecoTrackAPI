@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using StudentRoutineTrackerApi.Configurations;
+using RecoTrackApi.Configurations;
 
-namespace StudentRoutineTrackerApi.Services
+namespace RecoTrackApi.Services
 {
     public class MongoDbService : IMongoDbService
     {

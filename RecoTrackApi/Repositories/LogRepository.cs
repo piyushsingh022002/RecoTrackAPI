@@ -1,8 +1,8 @@
 ﻿using MongoDB.Driver;
-using StudentRoutineTrackerApi.Repositories.Interfaces;
-using StudentRoutineTrackerApi.Models;
+using RecoTrackApi.Repositories.Interfaces;
+using RecoTrackApi.Models;
 
-namespace StudentRoutineTrackerApi.Repositories
+namespace RecoTrackApi.Repositories
 {
     public class LogRepository : ILogRepository
     {

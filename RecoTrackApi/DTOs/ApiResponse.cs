@@ -1,4 +1,4 @@
-namespace StudentRoutineTrackerApi.DTOs
+namespace RecoTrackApi.DTOs
 {
     public class ApiResponse<T>
     {

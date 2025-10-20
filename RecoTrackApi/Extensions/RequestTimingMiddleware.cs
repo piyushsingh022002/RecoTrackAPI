@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace StudentRoutineTrackerApi.Extensions
+namespace RecoTrackApi.Extensions
 {
     public class RequestTimingMiddleware
     {

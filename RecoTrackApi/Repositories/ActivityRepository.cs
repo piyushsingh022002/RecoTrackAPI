@@ -1,10 +1,10 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
-using StudentRoutineTrackerApi.DTOs;
-using StudentRoutineTrackerApi.Repositories.Interfaces;
+using RecoTrackApi.DTOs;
+using RecoTrackApi.Repositories.Interfaces;
 using YourApp.Models;
 
-namespace StudentRoutineTrackerApi.Repositories
+namespace RecoTrackApi.Repositories
 {
     public class ActivityRepository : IActivityRepository
     {

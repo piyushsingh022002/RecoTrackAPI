@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using StudentRoutineTrackerApi.Controllers;
-using StudentRoutineTrackerApi.Services;
-using StudentRoutineTrackerApi.Models;
-using StudentRoutineTrackerApi.Repositories;
-using StudentRoutineTrackerApi.Repositories.Interfaces;
-namespace StudentRoutineTracketApi.ControllersTest
+using RecoTrackApi.Controllers;
+using RecoTrackApi.Services;
+using RecoTrackApi.Models;
+using RecoTrackApi.Repositories;
+using RecoTrackApi.Repositories.Interfaces;
+namespace RecoTrackApi.ControllersTest
 {
     public class AuthControllerTest
     {

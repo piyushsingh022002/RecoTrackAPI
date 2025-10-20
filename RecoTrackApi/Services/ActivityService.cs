@@ -1,8 +1,8 @@
-using StudentRoutineTrackerApi.DTOs;
-using StudentRoutineTrackerApi.Repositories.Interfaces;
-using StudentRoutineTrackerApi.Services.Interfaces;
+using RecoTrackApi.DTOs;
+using RecoTrackApi.Repositories.Interfaces;
+using RecoTrackApi.Services.Interfaces;
 
-namespace StudentRoutineTrackerApi.Services
+namespace RecoTrackApi.Services
 {
     public class ActivityService : IActivityService
     {

@@ -1,6 +1,6 @@
-using StudentRoutineTrackerApi.DTOs;
+using RecoTrackApi.DTOs;
 
-namespace StudentRoutineTrackerApi.Services.Interfaces
+namespace RecoTrackApi.Services.Interfaces
 {
     public interface IActivityService
     {

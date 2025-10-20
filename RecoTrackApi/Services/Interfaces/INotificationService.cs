@@ -1,8 +1,8 @@
-using StudentRoutineTrackerApi.Models;
+using RecoTrackApi.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace StudentRoutineTrackerApi.Services.Interfaces
+namespace RecoTrackApi.Services.Interfaces
 {
     public interface INotificationService
     {
