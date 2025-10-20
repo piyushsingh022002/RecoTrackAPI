@@ -39,6 +39,10 @@ jobs:
 
       - name: Restore Dependencies
         run: dotnet restore ProjectRecoTrack.sln
+      
+        # Optional: Build before testing, if you want --no-build in next step
+      - name: Build Test Project
+        run: dotnet build RecoTrackApi.ControllersTest/RecoTrackApi.ControllersTest.csproj --configuration Debug
 
       - name: Run Tests
         run: dotnet test RecoTrackApi.ControllersTest/RecoTrackApi.ControllersTest.csproj --no-build --verbosity normal
