@@ -19,7 +19,6 @@
 
         public static LoginResult Fail(string message) =>
             new LoginResult(false, errorMessage: message);
-
         public static LoginResult SuccessResult(string token, string username, string email) =>
             new LoginResult(true, token, username, email);
     }

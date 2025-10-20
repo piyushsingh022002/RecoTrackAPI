@@ -19,10 +19,10 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore Dependencies
-        run: dotnet restore
+        run: dotnet restore ProjectRecoTrack.sln
 
       - name: Build Solution
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build ProjectRecoTrack.sln --no-restore --configuration Release
 
   test:
     name: ✅ Test
@@ -38,10 +38,15 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore Dependencies
-        run: dotnet restore
+        run: dotnet restore ProjectRecoTrack.sln
+      
+        # Optional: Build before testing, if you want --no-build in next step
+      - name: Build Test Project
+        run: dotnet build RecoTrackApi.ControllersTest/RecoTrackApi.ControllersTest.csproj --configuration Debug
 
       - name: Run Tests
-        run: dotnet test --no-build --verbosity normal
+        run: dotnet test RecoTrackApi.ControllersTest/RecoTrackApi.ControllersTest.csproj --no-build --verbosity normal
+
 
   deploy:
     name: 🚀 Deploy (Approval Required)
