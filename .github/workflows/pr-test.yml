@@ -30,10 +30,10 @@ jobs:
 
       - name: Run Tests with Coverage
         run: |
-         dotnet test --no-build --configuration Release \
-          /p:CollectCoverage=true \
-          /p:CoverletOutput=TestResults/$(uuidgen)/ \
-          /p:CoverletOutputFormat=cobertura
+        dotnet test --no-build --configuration Release \
+         /p:CollectCoverage=true \
+         /p:CoverletOutput=TestResults/$(uuidgen)/ \
+         /p:CoverletOutputFormat=cobertura
 
 
       - name: Install ReportGenerator
