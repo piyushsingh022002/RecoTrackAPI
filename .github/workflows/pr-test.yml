@@ -29,7 +29,12 @@ jobs:
         run: rm -rf TestResults
 
       - name: Run Tests with Coverage
-        run: dotnet test --no-build --configuration Release /p:CollectCoverage=true /p:CoverletOutput=TestResults/coverage.cobertura.xml /p:CoverletOutputFormat=cobertura
+        run: |
+         dotnet test --no-build --configuration Release \
+          /p:CollectCoverage=true \
+          /p:CoverletOutput=TestResults/$(uuidgen)/ \
+          /p:CoverletOutputFormat=cobertura
+
 
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
