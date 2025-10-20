@@ -25,6 +25,9 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      - name: Clean TestResults folder
+        run: rm -rf TestResults
+
       - name: Run Tests with Coverage
         run: dotnet test --no-build --configuration Release /p:CollectCoverage=true /p:CoverletOutput=TestResults/coverage.cobertura.xml /p:CoverletOutputFormat=cobertura
 
@@ -33,10 +36,10 @@ jobs:
 
       - name: Generate Coverage Summary
         run: |
-          reportgenerator -reports:TestResults/**/coverage.cobertura.xml \
-                          -targetdir:TestResults/coverage-report \
-                          -reporttypes:TextSummary
-          cat TestResults/coverage-report/Summary.txt
+        reportgenerator -reports:TestResults/**/coverage.cobertura.xml \
+                        -targetdir:TestResults/coverage-report \
+                        -reporttypes:TextSummary
+        cat TestResults/coverage-report/Summary.txt
 
       - name: Run Static Analysis
         run: dotnet build -warnaserror
