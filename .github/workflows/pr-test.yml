@@ -30,7 +30,7 @@ jobs:
 
       - name: Run Tests with Coverage
         run: |
-        dotnet test --no-build --configuration Release \
+         dotnet test --no-build --configuration Release \
          /p:CollectCoverage=true \
          /p:CoverletOutput=TestResults/$(uuidgen)/ \
          /p:CoverletOutputFormat=cobertura
@@ -41,10 +41,10 @@ jobs:
 
       - name: Generate Coverage Summary
         run: |
-        reportgenerator -reports:TestResults/**/coverage.cobertura.xml \
+         reportgenerator -reports:TestResults/**/coverage.cobertura.xml \
                         -targetdir:TestResults/coverage-report \
                         -reporttypes:TextSummary
-        cat TestResults/coverage-report/Summary.txt
+         cat TestResults/coverage-report/Summary.txt
 
       - name: Run Static Analysis
         run: dotnet build -warnaserror
