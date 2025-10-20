@@ -41,7 +41,7 @@ jobs:
         run: dotnet restore ProjectRecoTrack.sln
 
       - name: Run Tests
-  run: dotnet test RecoTrackApi.ControllersTest/RecoTrackApi.ControllersTest.csproj --no-build --verbosity normal
+        run: dotnet test RecoTrackApi.ControllersTest/RecoTrackApi.ControllersTest.csproj --no-build --verbosity normal
 
 
   deploy:
