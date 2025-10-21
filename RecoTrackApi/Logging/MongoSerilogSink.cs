@@ -38,14 +38,26 @@ namespace RecoTrackApi.Logging
                 _repo.Insert(doc);
             }
             catch
+            (Exception ex)
             {
-                // Safe swallow
+                try
+                {
+                    Console.Error.WriteLine($"[MongoSerilogSink] Failed to write log: {ex.Message}");
+                    Console.Error.WriteLine(ex.ToString());
+                }
+                catch
+                {
+                    // Swallow all to prevent crash in Emit
+                }
             }
         }
 
         public void Dispose()
         {
-            // Dispose logic if needed
+            if (_repo is IDisposable disposableRepo)
+            {
+                disposableRepo.Dispose();
+            }
         }
     }
 }
