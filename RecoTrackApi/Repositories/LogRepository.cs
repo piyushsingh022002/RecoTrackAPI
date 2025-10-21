@@ -10,13 +10,15 @@ namespace RecoTrackApi.Repositories
 
         public LogRepository(IMongoClient client, IConfiguration config)
         {
-            // Use the same MongoDbSettings you already load in Program.cs
             var mongoSettings = config.GetSection(nameof(Configurations.MongoDbSettings))
                                       .Get<Configurations.MongoDbSettings>();
+            if (mongoSettings == null)
+                throw new ArgumentNullException(nameof(mongoSettings), "MongoDbSettings section is missing in configuration.");
 
             var database = client.GetDatabase(mongoSettings.DatabaseName);
             _logs = database.GetCollection<LogEntry>("Logs");
         }
+
 
         public void Insert(LogEntry entry) => _logs.InsertOne(entry);
 

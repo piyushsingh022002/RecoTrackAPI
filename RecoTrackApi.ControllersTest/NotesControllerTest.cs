@@ -86,7 +86,7 @@ namespace RecoTrackApi.ControllersTest
         {
             // Arrange
             var userId = "user123";
-            _noteServiceMock.Setup(s => s.GetNoteByIdAsync("noteId", userId)).ReturnsAsync((Note)null);
+            _noteServiceMock.Setup(s => s.GetNoteByIdAsync("noteId", userId)).ReturnsAsync((Note?)null);
             SetUser(userId);
 
             // Act

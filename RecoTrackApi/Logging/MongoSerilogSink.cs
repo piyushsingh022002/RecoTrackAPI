@@ -3,15 +3,14 @@ using Serilog.Events;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Models;
 
-
 namespace RecoTrackApi.Logging
 {
     public class MongoSerilogSink : ILogEventSink, IDisposable
     {
         private readonly ILogRepository _repo;
-        private readonly IFormatProvider _formatProvider;
+        private readonly IFormatProvider? _formatProvider;
 
-        public MongoSerilogSink(ILogRepository repo, IFormatProvider formatProvider = null)
+        public MongoSerilogSink(ILogRepository repo, IFormatProvider? formatProvider = null)
         {
             _repo = repo ?? throw new ArgumentNullException(nameof(repo));
             _formatProvider = formatProvider;
@@ -28,26 +27,25 @@ namespace RecoTrackApi.Logging
                     Timestamp = logEvent.Timestamp.UtcDateTime,
                     Level = logEvent.Level.ToString(),
                     Message = renderedMessage,
-                    Exception = logEvent.Exception?.ToString(),
-                    SourceContext = logEvent.Properties.TryGetValue("SourceContext", out var sc) ? sc.ToString().Trim('"') : null,
-                    Properties = logEvent.Properties.ToDictionary(
+                    Exception = logEvent.Exception?.ToString() ?? string.Empty,
+                    SourceContext = logEvent.Properties.TryGetValue("SourceContext", out var sc) ? sc.ToString().Trim('"') : string.Empty,
+                    Properties = logEvent.Properties?.ToDictionary(
                         kvp => kvp.Key,
-                        kvp => kvp.Value?.ToString() ?? string.Empty)
+                        kvp => kvp.Value?.ToString() ?? string.Empty
+                    ) ?? new Dictionary<string, string>()
                 };
 
-                // Insert synchronously. We will configure Serilog to call this sink asynchronously
                 _repo.Insert(doc);
             }
             catch
             {
-                // Swallow to ensure logging doesn't throw. You can write to Console/File if wanted.
+                // Safe swallow
             }
         }
 
         public void Dispose()
         {
-            // nothing to dispose here; if your repo requires disposal, handle it.
+            // Dispose logic if needed
         }
     }
-
 }
