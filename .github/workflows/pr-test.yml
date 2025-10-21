@@ -44,15 +44,16 @@ jobs:
 
       - name: Debug coverage file locations
         run: |
-          echo "=== Searching for coverage.cobertura.xml files ==="
-          find ${{ github.workspace }}/TestResults -type f -name "coverage.cobertura.xml" || true
+          echo "=== Searching for coverage.cobertura.xml files in test projects ==="
+          find ${{ github.workspace }}/RecoTrack.ServiceTests/TestResults -type f -name "coverage.cobertura.xml" || true
+          find ${{ github.workspace }}/RecoTrackApi.ControllersTest/TestResults -type f -name "coverage.cobertura.xml" || true
 
       - name: Generate Coverage Summary
         run: |
           echo "Generating coverage summary..."
-          reportgenerator -reports:${{ github.workspace }}/TestResults/**/coverage.cobertura.xml \
-                         -targetdir:${{ github.workspace }}/TestResults/coverage-report \
-                         -reporttypes:TextSummary
+          reportgenerator -reports:${{ github.workspace }}/RecoTrack.ServiceTests/TestResults/**/coverage.cobertura.xml,${{ github.workspace }}/RecoTrackApi.ControllersTest/TestResults/**/coverage.cobertura.xml \
+                   -targetdir:${{ github.workspace }}/TestResults/coverage-report \
+                   -reporttypes:TextSummary
           echo "=== Summary ==="
           cat ${{ github.workspace }}/TestResults/coverage-report/Summary.txt
 
