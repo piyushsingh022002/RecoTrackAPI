@@ -28,16 +28,26 @@ jobs:
       - name: Clean TestResults folder
         run: rm -rf ${{ github.workspace }}/TestResults  # Clears old files
 
-      - name: Run Tests with Coverage
+      - name: Prepare TestResults folders
         run: |
-          echo "Running tests and generating coverage..."
-          mkdir -p ${{ github.workspace }}/TestResults
-          dotnet test --no-build --configuration Release \
+         mkdir -p RecoTrack.ServiceTests/TestResults
+         mkdir -p RecoTrackApi.ControllersTest/TestResults
+
+
+      - name: Run Tests with Coverage - ServiceTests
+        run: |
+         dotnet test RecoTrack.ServiceTests/RecoTrack.ServiceTests.csproj --no-build --configuration Release \
+          /p:CollectCoverage=true \
+          /p:CoverletOutput=RecoTrack.ServiceTests/TestResults/coverage.cobertura.xml \
+          /p:CoverletOutputFormat=cobertura
+
+      - name: Run Tests with Coverage - ControllersTest
+        run: |
+          dotnet test RecoTrackApi.ControllersTest/RecoTrackApi.ControllersTest.csproj --no-build --configuration Release \
            /p:CollectCoverage=true \
-           /p:CoverletOutput=${{ github.workspace }}/TestResults/coverage.cobertura.xml \
+           /p:CoverletOutput=RecoTrackApi.ControllersTest/TestResults/coverage.cobertura.xml \
            /p:CoverletOutputFormat=cobertura
-          echo "=== TestResults Directory ==="
-          ls -R ${{ github.workspace }}/TestResults
+
 
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
@@ -64,4 +74,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: ${{ github.workspace }}/TestResults/**/coverage-report
+          path: ${{ github.workspace }}/TestResults/coverage-report
