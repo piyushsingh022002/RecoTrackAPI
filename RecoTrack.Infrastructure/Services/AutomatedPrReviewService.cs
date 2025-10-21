@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using RecoTrack.Application.Interfaces;
 using RecoTrack.Application.Models;
 
-namespace RecoTrack.Infrastructure.services
+namespace RecoTrack.Infrastructure.Services
 {
     public class AutomatedPrReviewService : IAutomatedPrReviewService
     {

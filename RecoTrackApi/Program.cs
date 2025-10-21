@@ -4,7 +4,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using RecoTrack.Application.Interfaces;
-using RecoTrack.Infrastructure.services;
 using Serilog;
 using RecoTrackApi.Configurations;
 using RecoTrackApi.Extensions;
@@ -13,6 +12,7 @@ using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Services;
 using RecoTrackApi.Services.Interfaces;
 using System.Text;
+using RecoTrack.Infrastructure.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);

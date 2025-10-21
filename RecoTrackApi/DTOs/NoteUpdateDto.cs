@@ -1,10 +1,10 @@
 public class NoteUpdateDto
 {
     // Removed Id and UserId as per requirements
-    public string Title { get; set; }
-    public string Content { get; set; }
-    public List<string> Tags { get; set; }
-    public List<string> MediaUrls { get; set; }
+    public required string Title { get; set; }
+    public required string Content { get; set; }
+    public List<string> Tags { get; set; } = new();
+    public List<string> MediaUrls { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
