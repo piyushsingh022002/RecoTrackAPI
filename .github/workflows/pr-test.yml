@@ -26,35 +26,35 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Clean TestResults folder
-        run: rm -rf TestResults
+        run: rm -rf ${{ github.workspace }}/TestResults  # Clears old files
 
       - name: Run Tests with Coverage
         run: |
-         echo "Running tests and generating coverage..."
-         mkdir -p ${{ github.workspace }}/TestResults
-         dotnet test --no-build --configuration Release \
-          /p:CollectCoverage=true \
-          /p:CoverletOutput=${{ github.workspace }}/TestResults/coverage.cobertura.xml \
-          /p:CoverletOutputFormat=cobertura
-         echo "=== TestResults Directory ==="
-         ls -R ${{ github.workspace }}/TestResults
-
-
-
-
-
+          echo "Running tests and generating coverage..."
+          mkdir -p ${{ github.workspace }}/TestResults
+          dotnet test --no-build --configuration Release \
+           /p:CollectCoverage=true \
+           /p:CoverletOutput=${{ github.workspace }}/TestResults/coverage.cobertura.xml \
+           /p:CoverletOutputFormat=cobertura
+          echo "=== TestResults Directory ==="
+          ls -R ${{ github.workspace }}/TestResults
 
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
 
+      - name: Debug coverage file locations
+        run: |
+          echo "=== Searching for coverage.cobertura.xml files ==="
+          find ${{ github.workspace }}/TestResults -type f -name "coverage.cobertura.xml" || true
+
       - name: Generate Coverage Summary
         run: |
-         echo "Generating coverage summary..."
-         reportgenerator -reports:${{ github.workspace }}/TestResults/coverage.cobertura.xml \
-                    -targetdir:${{ github.workspace }}/TestResults/coverage-report \
-                    -reporttypes:TextSummary
-         echo "=== Summary ==="
-         cat ${{ github.workspace }}/TestResults/coverage-report/Summary.txt
+          echo "Generating coverage summary..."
+          reportgenerator -reports:${{ github.workspace }}/TestResults/**/coverage.cobertura.xml \
+                         -targetdir:${{ github.workspace }}/TestResults/coverage-report \
+                         -reporttypes:TextSummary
+          echo "=== Summary ==="
+          cat ${{ github.workspace }}/TestResults/coverage-report/Summary.txt
 
       - name: Run Static Analysis
         run: dotnet build -warnaserror
@@ -62,6 +62,5 @@ jobs:
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
-         name: coverage-report
-         path: TestResults/coverage-report
- 
+          name: coverage-report
+          path: ${{ github.workspace }}/TestResults/**/coverage-report
