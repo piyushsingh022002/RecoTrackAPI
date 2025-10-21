@@ -37,16 +37,12 @@ jobs:
       - name: Run Tests with Coverage - ServiceTests
         run: |
          dotnet test RecoTrackApi.ServiceTests/RecoTrackApi.ServiceTests.csproj --no-build --configuration Release \
-          /p:CollectCoverage=true \
-          /p:CoverletOutput=RecoTrackApi.ServiceTests/TestResults/coverage.cobertura.xml \
-          /p:CoverletOutputFormat=cobertura
+            --collect:"XPlat Code Coverage"
 
       - name: Run Tests with Coverage - ControllersTest
         run: |
-          dotnet test RecoTrackApi.ControllersTest/RecoTrackApi.ControllersTest.csproj --no-build --configuration Release \
-           /p:CollectCoverage=true \
-           /p:CoverletOutput=RecoTrackApi.ControllersTest/TestResults/coverage.cobertura.xml \
-           /p:CoverletOutputFormat=cobertura
+           dotnet test RecoTrackApi.ControllersTest/RecoTrackApi.ControllersTest.csproj --no-build --configuration Release \
+            --collect:"XPlat Code Coverage"
 
 
       - name: Install ReportGenerator
