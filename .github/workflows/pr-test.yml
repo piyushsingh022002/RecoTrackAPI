@@ -52,20 +52,27 @@ jobs:
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
 
-      - name: Debug coverage file locations
+      # - name: Debug coverage file locations
+      #   run: |
+      #     echo "=== Searching for coverage.cobertura.xml files in test projects ==="
+      #     find ${{ github.workspace }}/RecoTrackApi.ServiceTests/TestResults -type f -name "coverage.cobertura.xml" || true
+      #     find ${{ github.workspace }}/RecoTrackApi.ControllersTest/TestResults -type f -name "coverage.cobertura.xml" || true
+
+      - name: Debug all coverage files
         run: |
-          echo "=== Searching for coverage.cobertura.xml files in test projects ==="
-          find ${{ github.workspace }}/RecoTrackApi.ServiceTests/TestResults -type f -name "coverage.cobertura.xml" || true
-          find ${{ github.workspace }}/RecoTrackApi.ControllersTest/TestResults -type f -name "coverage.cobertura.xml" || true
+         echo "=== Listing all coverage.cobertura.xml in workspace ==="
+         find "${{ github.workspace }}" -type f -name "coverage.cobertura.xml" || true
 
       - name: Generate Coverage Summary
         run: |
           echo "Generating coverage summary..."
-          reportgenerator -reports:${{ github.workspace }}/RecoTrackApi.ServiceTests/TestResults/**/coverage.cobertura.xml,${{ github.workspace }}/RecoTrackApi.ControllersTest/TestResults/**/coverage.cobertura.xml \
-                   -targetdir:${{ github.workspace }}/TestResults/coverage-report \
-                   -reporttypes:TextSummary
+          reportgenerator \
+            -reports:"${{ github.workspace }}/**/TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"${{ github.workspace }}/TestResults/coverage-report" \
+            -reporttypes:TextSummary
           echo "=== Summary ==="
-          cat ${{ github.workspace }}/TestResults/coverage-report/Summary.txt
+          cat "${{ github.workspace }}/TestResults/coverage-report/Summary.txt"
+
 
       - name: Run Static Analysis
         run: dotnet build -warnaserror
