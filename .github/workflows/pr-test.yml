@@ -78,3 +78,14 @@ jobs:
         with:
           name: coverage-report
           path: ${{ github.workspace }}/TestResults/coverage-report
+
+  deploy-review:
+    needs: build-test-analyze
+    runs-on: ubuntu-latest
+    environment:
+      name: staging  # 👈 This must match the name of your protected environment in GitHub Settings
+      url: https://your-staging-url.com  # Optional, just for display in GitHub UI
+
+    steps:
+    - name: Deployment review
+      run: echo "Ready for deployment review and approval."
