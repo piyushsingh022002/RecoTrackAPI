@@ -30,10 +30,14 @@ jobs:
 
       - name: Run Tests with Coverage
         run: |
+         mkdir -p ./TestResults
          dotnet test --no-build --configuration Release \
-         /p:CollectCoverage=true \
-         /p:CoverletOutput=TestResults/$(uuidgen)/ \
-         /p:CoverletOutputFormat=cobertura
+          /p:CollectCoverage=true \
+          /p:CoverletOutput=./TestResults/coverage.cobertura.xml \
+          /p:CoverletOutputFormat=cobertura
+         echo "TestResults folder content:"
+         ls -R ./TestResults
+
 
 
       - name: Install ReportGenerator
@@ -48,3 +52,10 @@ jobs:
 
       - name: Run Static Analysis
         run: dotnet build -warnaserror
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+         name: coverage-report
+         path: TestResults/coverage-report
+ 
