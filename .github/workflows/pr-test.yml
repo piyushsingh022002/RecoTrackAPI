@@ -30,15 +30,15 @@ jobs:
 
       - name: Prepare TestResults folders
         run: |
-         mkdir -p RecoTrack.ServiceTests/TestResults
+         mkdir -p RecoTrackApi.ServiceTests/TestResults
          mkdir -p RecoTrackApi.ControllersTest/TestResults
 
 
       - name: Run Tests with Coverage - ServiceTests
         run: |
-         dotnet test RecoTrack.ServiceTests/RecoTrack.ServiceTests.csproj --no-build --configuration Release \
+         dotnet test RecoTrackApi.ServiceTests/RecoTrackApi.ServiceTests.csproj --no-build --configuration Release \
           /p:CollectCoverage=true \
-          /p:CoverletOutput=RecoTrack.ServiceTests/TestResults/coverage.cobertura.xml \
+          /p:CoverletOutput=RecoTrackApi.ServiceTests/TestResults/coverage.cobertura.xml \
           /p:CoverletOutputFormat=cobertura
 
       - name: Run Tests with Coverage - ControllersTest
@@ -55,13 +55,13 @@ jobs:
       - name: Debug coverage file locations
         run: |
           echo "=== Searching for coverage.cobertura.xml files in test projects ==="
-          find ${{ github.workspace }}/RecoTrack.ServiceTests/TestResults -type f -name "coverage.cobertura.xml" || true
+          find ${{ github.workspace }}/RecoTrackApi.ServiceTests/TestResults -type f -name "coverage.cobertura.xml" || true
           find ${{ github.workspace }}/RecoTrackApi.ControllersTest/TestResults -type f -name "coverage.cobertura.xml" || true
 
       - name: Generate Coverage Summary
         run: |
           echo "Generating coverage summary..."
-          reportgenerator -reports:${{ github.workspace }}/RecoTrack.ServiceTests/TestResults/**/coverage.cobertura.xml,${{ github.workspace }}/RecoTrackApi.ControllersTest/TestResults/**/coverage.cobertura.xml \
+          reportgenerator -reports:${{ github.workspace }}/RecoTrackApi.ServiceTests/TestResults/**/coverage.cobertura.xml,${{ github.workspace }}/RecoTrackApi.ControllersTest/TestResults/**/coverage.cobertura.xml \
                    -targetdir:${{ github.workspace }}/TestResults/coverage-report \
                    -reporttypes:TextSummary
           echo "=== Summary ==="
