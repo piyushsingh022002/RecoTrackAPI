@@ -28,20 +28,29 @@ namespace RecoTrack.Infrastructure.Services
         {
             var apiUrl = _configuration["OpenRouter:ApiUrl"];
             var apiKey = _configuration["OpenRouter:ApiKey"];
+            var githubToken = _configuration["GitHub:Token"];
 
             if (string.IsNullOrEmpty(apiKey))
                 throw new InvalidOperationException("OpenRouter API key is missing.");
 
+            if (string.IsNullOrEmpty(githubToken))
+                throw new InvalidOperationException("GitHub token is missing.");
+
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", apiKey);
 
+            // Add GitHub token to Authorization header for diff URL request
+            var httpClientWithGitHubAuth = new HttpClient();
+            httpClientWithGitHubAuth.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", githubToken);
+
             var prompt = $@"
-Summarize this Pull Request in one concise, professional paragraph.
-Title: {metadata.Title}
-Description: {metadata.Description}
-Branch: {metadata.BranchName}
-Author: {metadata.Author}
-Changed Files: {string.Join(", ", metadata.ChangedFiles)}
+                Summarize this Pull Request in one concise, professional paragraph.
+                Title: {metadata.Title}
+                Description: {metadata.Description}
+                Branch: {metadata.BranchName}
+                Author: {metadata.Author}
+                Changed Files: {string.Join(", ", metadata.ChangedFiles)}
 ";
 
             var payload = new
