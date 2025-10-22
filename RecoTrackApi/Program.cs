@@ -59,6 +59,8 @@ builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddSingleton<ILogRepository, LogRepository>();
 
 builder.Services.AddScoped<IAutomatedPrReviewService, AutomatedPrReviewService>();
+builder.Services.AddHttpClient<IAutomatedPrReviewService, AutomatedPrReviewService>();
+
 
 
 // ----- Serilog with Mongo Sink -----

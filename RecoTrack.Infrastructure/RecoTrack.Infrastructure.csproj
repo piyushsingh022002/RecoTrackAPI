@@ -10,4 +10,8 @@
     <ProjectReference Include="..\RecoTrack.Applications\RecoTrack.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.10" />
+  </ItemGroup>
+
 </Project>

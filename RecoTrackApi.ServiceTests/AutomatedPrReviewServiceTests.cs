@@ -1,16 +1,26 @@
 ﻿using RecoTrack.Application.Models;
 using RecoTrack.Infrastructure.Services;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Moq;
 
 namespace RecoTrack.ServiceTests
 {
     public class AutomatedPrReviewServiceTests
     {
-        private readonly AutomatedPrReviewService _service = new();
+        private readonly AutomatedPrReviewService _service;
+
+        public AutomatedPrReviewServiceTests()
+        {
+            var httpClient = new HttpClient();
+            var configurationMock = new Mock<IConfiguration>();
+            _service = new AutomatedPrReviewService(httpClient, configurationMock.Object);
+        }
 
         [Fact]
         public async Task AnalyzePullRequestAsync_ShouldHandleEmptyMetadataGracefully()
