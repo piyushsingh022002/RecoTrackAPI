@@ -39,7 +39,9 @@ namespace RecoTrackApi.Controllers
                 BranchName = request.Branch,            
                 Author = request.Author,
                 ChangedFiles = request.ChangedFiles ?? new List<string>(),
-                Diff = request.Diff ?? string.Empty
+                Diff = request.Diff ?? string.Empty,
+                Repo = request.Repo ?? string.Empty,
+                PrNumber = request.PrNumber
             }; 
 
             var result = await _reviewService.AnalyzePullRequestAsync(metadata);

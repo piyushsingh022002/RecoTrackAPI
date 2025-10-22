@@ -60,6 +60,7 @@ builder.Services.AddSingleton<ILogRepository, LogRepository>();
 
 builder.Services.AddScoped<IAutomatedPrReviewService, AutomatedPrReviewService>();
 builder.Services.AddHttpClient<IAutomatedPrReviewService, AutomatedPrReviewService>();
+builder.Services.AddHttpClient<IGitHubClientService, GitHubClientService>();
 
 
 

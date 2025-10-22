@@ -8,6 +8,9 @@ namespace RecoTrack.Application.Models
 {
     public class PrMetadata
     {
+
+        public int PrNumber { get; set; }      
+        public string Repo { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string BranchName { get; set; } = string.Empty;

@@ -1,4 +1,5 @@
-﻿using RecoTrack.Application.Models;
+﻿using RecoTrack.Application.Interfaces;
+using RecoTrack.Application.Models;
 using RecoTrack.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -19,7 +20,8 @@ namespace RecoTrack.ServiceTests
         {
             var httpClient = new HttpClient();
             var configurationMock = new Mock<IConfiguration>();
-            _service = new AutomatedPrReviewService(httpClient, configurationMock.Object);
+            var githubClientMock = new Mock<IGitHubClientService>();
+            _service = new AutomatedPrReviewService(httpClient, configurationMock.Object, githubClientMock.Object);
         }
 
         [Fact]
