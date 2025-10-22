@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RecoTrack.Application.Interfaces;
 using RecoTrack.Application.Models;
 using System.Text.Json;
@@ -16,18 +17,39 @@ namespace RecoTrackApi.Controllers
             _reviewService = reviewService;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> HandleWebhook([FromBody] JsonElement payload)
+        [AllowAnonymous]
+        [HttpPost("")]
+        public async Task<IActionResult> HandleWebhook()
         {
             var eventType = Request.Headers["X-GitHub-Event"].FirstOrDefault();
+
+            using var reader = new StreamReader(Request.Body);
+
+            var body = await reader.ReadToEndAsync();
+
+            if (string.IsNullOrEmpty(body))
+                return BadRequest("Empty body");
+
+            JsonElement payload;
+
+            try
+            {
+                payload = JsonSerializer.Deserialize<JsonElement>(body);
+            }
+            catch (JsonException)
+            {
+                return BadRequest("Invalid JSON");
+            }
+
             if (eventType != "pull_request")
                 return Ok("Ignored: Not a pull_request event");
 
             var action = payload.GetProperty("action").GetString();
             if (action != "opened" && action != "synchronize")
-                return Ok($"Ignored: PR action {action}");
+                  return Ok($"Ignored: PR action {action}");
 
             var pr = payload.GetProperty("pull_request");
+
 
             var metadata = new PrMetadata
             {
@@ -35,8 +57,8 @@ namespace RecoTrackApi.Controllers
                 Description = pr.GetProperty("body").GetString() ?? string.Empty,
                 BranchName = pr.GetProperty("head").GetProperty("ref").GetString() ?? string.Empty,
                 Author = pr.GetProperty("user").GetProperty("login").GetString() ?? string.Empty,
-                ChangedFiles = new List<string>(), // optionally fetched later
-                Diff = "", // optionally fetched later
+                ChangedFiles = new List<string>(),
+                Diff = "",
                 Repo = payload.GetProperty("repository").GetProperty("full_name").GetString() ?? string.Empty,
                 PrNumber = pr.GetProperty("number").GetInt32()
             };
