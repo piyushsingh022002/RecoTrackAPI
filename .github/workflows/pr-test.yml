@@ -57,7 +57,7 @@ jobs:
           reportgenerator \
             -reports:"${{ github.workspace }}/**/TestResults/**/coverage.cobertura.xml" \
             -targetdir:"${{ github.workspace }}/TestResults/coverage-report" \
-            -reporttypes:TextSummary
+            -reporttypes:"Html;TextSummary"
           echo "=== Summary ==="
           cat "${{ github.workspace }}/TestResults/coverage-report/Summary.txt"
 
@@ -73,23 +73,71 @@ jobs:
 
 
   pr_review:
-   name: 🤖 Automated PR Review
-   runs-on: ubuntu-latest
-   if: github.event_name == 'pull_request'
-   needs: build-test-analyze
-   steps:
-    - name: Trigger AI PR Review API
-      run: |
-        echo "Triggering automated PR review..."
-        curl -X POST "https://recotrackapi.onrender.com/api/automatedprreview/analyze" \
-          -H "Content-Type: application/json" \
-          -d '{
-            "prNumber": "${{ github.event.pull_request.number }}",
-            "repo": "${{ github.repository }}",
-            "title": "${{ github.event.pull_request.title }}",
-            "description": "${{ github.event.pull_request.body }}",
-            "branch": "${{ github.head_ref }}",
-            "baseBranch": "${{ github.base_ref }}",
-            "author": "${{ github.event.pull_request.user.login }}",
-            "diffUrl": "${{ github.event.pull_request.diff_url }}"
-          }'
+    runs-on: ubuntu-latest
+    needs: build-test-analyze   # ensures this job runs after the first one
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download Coverage Report
+        uses: actions/download-artifact@v4
+        with:
+         name: coverage-report
+         path: TestResults/coverage-report
+
+      - name: Read coverage summary (if exists)
+        id: cov
+        run: |
+          if [ -f TestResults/coverage-report/Summary.txt ]; then
+           SUMMARY=$(cat TestResults/coverage-report/Summary.txt)
+           echo "text<<EOF" >> $GITHUB_OUTPUT
+           echo "$SUMMARY" >> $GITHUB_OUTPUT
+           echo "EOF" >> $GITHUB_OUTPUT
+          else
+           echo "text=" >> $GITHUB_OUTPUT
+          fi
+
+      # - name: Add HTML link in PR comment
+      #   run: |
+      #    echo "Coverage report: [HTML Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)"
+
+
+      - name: Trigger AI PR Review API
+        run: |
+          COVERAGE="${{ steps.cov.outputs.text }}"
+           HTML_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}?query=artifacts"
+
+          # Build JSON safely
+          PAYLOAD=$(jq -n \
+            --arg prNumber "${{ github.event.pull_request.number }}" \
+            --arg repo "${{ github.repository }}" \
+            --arg title "${{ github.event.pull_request.title }}" \
+            --arg description "${{ github.event.pull_request.body }}" \
+            --arg branch "${{ github.head_ref }}" \
+            --arg baseBranch "${{ github.base_ref }}" \
+            --arg author "${{ github.event.pull_request.user.login }}" \
+            --arg diffUrl "${{ github.event.pull_request.diff_url }}" \
+            --arg coverageSummary "$COVERAGE" \
+            --arg htmlReportUrl "$HTML_URL" \
+            --arg workflowRunUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{
+              prNumber: $prNumber,
+              repo: $repo,
+              title: $title,
+              description: $description,
+              branch: $branch,
+              baseBranch: $baseBranch,
+              author: $author,
+              diffUrl: $diffUrl,
+              coverageSummary: $coverageSummary,
+              htmlReportUrl: $htmlReportUrl,
+              workflowRunUrl: $workflowRunUrl
+            }'
+          )
+
+          # Save and POST
+          echo "$PAYLOAD" > /tmp/payload.json
+          curl -X POST "https://recotrackapi.onrender.com/api/automatedprreview/analyze" \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/payload.json
+
