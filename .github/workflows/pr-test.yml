@@ -79,10 +79,12 @@ jobs:
         id: cov
         run: |
           if [ -f TestResults/coverage-report/Summary.txt ]; then
-            echo "::set-output name=text::$(sed ':a;N;$!ba;s/\"/\\\"/g; s/$/\\n/; ' TestResults/coverage-report/Summary.txt)"
+          SUMMARY=$(sed ':a;N;$!ba;s/\"/\\\"/g; s/$/\\n/; ' TestResults/coverage-report/Summary.txt)
+          echo "text=$SUMMARY" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name:text::"
+           echo "text=" >> $GITHUB_OUTPUT
           fi
+
 
       - name: Trigger AI PR Review API
         run: |
