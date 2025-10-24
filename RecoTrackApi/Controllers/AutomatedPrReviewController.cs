@@ -41,7 +41,9 @@ namespace RecoTrackApi.Controllers
                 ChangedFiles = request.ChangedFiles ?? new List<string>(),
                 Diff = request.Diff ?? string.Empty,
                 Repo = request.Repo ?? string.Empty,
-                PrNumber = request.PrNumber
+                PrNumber = request.PrNumber,
+                CoverageSummary = request.CoverageSummary ?? string.Empty,
+                WorkflowRunUrl = request.WorkflowRunUrl ?? string.Empty
             }; 
 
             var result = await _reviewService.AnalyzePullRequestAsync(metadata);

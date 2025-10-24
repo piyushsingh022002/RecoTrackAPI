@@ -41,17 +41,45 @@ namespace RecoTrack.Infrastructure.Services
             _httpClient.DefaultRequestHeaders.Add("X-Title", "RecoTrack PR Review");
 
             // --- 🧠 Generate review prompt
+            //var prompt = new StringBuilder();
+            //prompt.AppendLine("You are an expert senior developer performing a code review.");
+            //prompt.AppendLine("Analyze this pull request and write a concise professional summary and any actionable suggestions.");
+            //prompt.AppendLine();
+            //prompt.AppendLine($"**Title:** {metadata.Title}");
+            //prompt.AppendLine($"**Description:** {metadata.Description}");
+            //prompt.AppendLine($"**Branch:** {metadata.BranchName}");
+            //prompt.AppendLine($"**Author:** {metadata.Author}");
+            //prompt.AppendLine();
+            //prompt.AppendLine("### Diff / Changed Code:");
+            //prompt.AppendLine(metadata.Diff?.Length > 2000 ? metadata.Diff[..2000] + "..." : metadata.Diff);
+
             var prompt = new StringBuilder();
-            prompt.AppendLine("You are an expert senior developer performing a code review.");
-            prompt.AppendLine("Analyze this pull request and write a concise professional summary and any actionable suggestions.");
+            prompt.AppendLine("You are an expert senior C#/.NET code reviewer. Produce a concise, actionable review in Markdown.");
+            prompt.AppendLine("FORMAT: ");
+            prompt.AppendLine("1) A one-line bolded summary (first sentence) followed by a short paragraph.");
+            prompt.AppendLine("2) A section titled '### Code Suggestions' with up to 3 concrete suggestions. Each suggestion should include a short explanation and a C# code snippet in a ```csharp``` fenced code block.");
+            prompt.AppendLine("3) A section titled '### Coverage Summary' that includes the provided coverage analysis text if available.");
+            prompt.AppendLine("4) Keep each code snippet minimal and runnable (just the relevant method / snippet).");
+            prompt.AppendLine("5) Be concise: prefer bullet points for suggestions, maximum 3 suggestions.");
             prompt.AppendLine();
-            prompt.AppendLine($"**Title:** {metadata.Title}");
-            prompt.AppendLine($"**Description:** {metadata.Description}");
-            prompt.AppendLine($"**Branch:** {metadata.BranchName}");
-            prompt.AppendLine($"**Author:** {metadata.Author}");
+            prompt.AppendLine($"PR Title: {metadata.Title}");
+            prompt.AppendLine($"Author: {metadata.Author}");
+            prompt.AppendLine($"Branch: {metadata.BranchName}");
             prompt.AppendLine();
-            prompt.AppendLine("### Diff / Changed Code:");
-            prompt.AppendLine(metadata.Diff?.Length > 2000 ? metadata.Diff[..2000] + "..." : metadata.Diff);
+            prompt.AppendLine("PR Description:");
+            prompt.AppendLine(metadata.Description);
+            prompt.AppendLine();
+            prompt.AppendLine("Diff / code context (trimmed):");
+            prompt.AppendLine(metadata.Diff?.Length > 4000 ? metadata.Diff.Substring(0, 4000) + "..." : metadata.Diff);
+            prompt.AppendLine();
+            if (!string.IsNullOrWhiteSpace(metadata.CoverageSummary))
+            {
+                prompt.AppendLine("Coverage Summary:");
+                prompt.AppendLine(metadata.CoverageSummary.Length > 4000 ? metadata.CoverageSummary.Substring(0, 4000) : metadata.CoverageSummary);
+                prompt.AppendLine();
+            }
+            prompt.AppendLine("Now produce the review in Markdown following the FORMAT above.");
+            // --- 🤖 Call OpenRouter API
 
             var payload = new
             {
