@@ -89,8 +89,10 @@ jobs:
         id: cov
         run: |
           if [ -f TestResults/coverage-report/Summary.txt ]; then
-           SUMMARY=$(sed ':a;N;$!ba;s/\"/\\\"/g; s/$/\\n/; ' TestResults/coverage-report/Summary.txt)
-           echo "text=$SUMMARY" >> $GITHUB_OUTPUT
+           SUMMARY=$(cat TestResults/coverage-report/Summary.txt)
+           echo "text<<EOF" >> $GITHUB_OUTPUT
+           echo "$SUMMARY" >> $GITHUB_OUTPUT
+           echo "EOF" >> $GITHUB_OUTPUT
           else
            echo "text=" >> $GITHUB_OUTPUT
           fi
