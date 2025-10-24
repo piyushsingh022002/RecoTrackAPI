@@ -57,7 +57,7 @@ jobs:
           reportgenerator \
             -reports:"${{ github.workspace }}/**/TestResults/**/coverage.cobertura.xml" \
             -targetdir:"${{ github.workspace }}/TestResults/coverage-report" \
-            -reporttypes:TextSummary
+            -reporttypes:Html;TextSummary
           echo "=== Summary ==="
           cat "${{ github.workspace }}/TestResults/coverage-report/Summary.txt"
 
@@ -97,7 +97,9 @@ jobs:
            echo "text=" >> $GITHUB_OUTPUT
           fi
 
-
+      - name: Add HTML link in PR comment
+        run: |
+         echo "Coverage report: [HTML Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)"
       - name: Trigger AI PR Review API
         run: |
           COVERAGE="${{ steps.cov.outputs.text }}"
