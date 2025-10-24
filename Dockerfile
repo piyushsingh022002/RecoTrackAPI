@@ -1,24 +1,22 @@
-# Use the official .NET SDK image for build
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
-WORKDIR /source
+# Copy solution and restore dependencies
+COPY ProjectRecoTrack.sln ./
+COPY RecoTrackApi/*.csproj ./RecoTrackApi/
+COPY RecoTrack.Application/*.csproj ./RecoTrack.Application/
+COPY RecoTrack.Infrastructure/*.csproj ./RecoTrack.Infrastructure/
+RUN dotnet restore ProjectRecoTrack.sln
 
-# Copy csproj and restore
-COPY *.csproj .
-RUN dotnet restore
-
-# Copy everything else and build
+# Copy all source and build
 COPY . .
-RUN dotnet publish -c Release -o /app/publish
+RUN dotnet publish RecoTrackApi/RecoTrackApi.csproj -c Release -o /app/publish
 
-# Runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
-
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
-
-# Expose port
+ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
-
-# Start the app
-ENTRYPOINT ["dotnet", "StudentRoutineTrackerApi.dll"]
+ENTRYPOINT ["dotnet", "RecoTrackApi.dll"]

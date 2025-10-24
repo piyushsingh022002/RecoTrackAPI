@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using RecoTrack.Application.Interfaces;
 using RecoTrack.Application.Models;
 using System.Text.Json;
@@ -11,10 +12,12 @@ namespace RecoTrackApi.Controllers
     public class GitHubWebhookController : ControllerBase
     {
         private readonly IAutomatedPrReviewService _reviewService;
+        private readonly IConfiguration _configuration;
 
-        public GitHubWebhookController(IAutomatedPrReviewService reviewService)
+        public GitHubWebhookController(IAutomatedPrReviewService reviewService, IConfiguration configuration)
         {
             _reviewService = reviewService;
+            _configuration = configuration;
         }
 
         [AllowAnonymous]
@@ -62,7 +65,6 @@ namespace RecoTrackApi.Controllers
                 Repo = payload.GetProperty("repository").GetProperty("full_name").GetString() ?? string.Empty,
                 PrNumber = pr.GetProperty("number").GetInt32()
             };
-
             // Optionally fetch diff from PR
             if (pr.TryGetProperty("diff_url", out var diffUrlProp))
             {
@@ -70,11 +72,27 @@ namespace RecoTrackApi.Controllers
                 try
                 {
                     var http = new HttpClient();
-                    metadata.Diff = await http.GetStringAsync(diffUrl);
+                    var githubToken = _configuration["GitHub:Token"];
+                    Console.WriteLine($"Using GitHub token: {githubToken}");
+                    http.DefaultRequestHeaders.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("token", githubToken);
+                    http.DefaultRequestHeaders.UserAgent.ParseAdd("RecoTrackApp/1.0");
+                    http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github.v3.diff");
+
+                    var response = await http.GetAsync(diffUrl);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        metadata.Diff = await response.Content.ReadAsStringAsync();
+                    }
+                    else
+                    {
+                        var errorBody = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"GitHub diff fetch failed: {response.StatusCode} - {errorBody}");
+                    }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Ignore fetch error
+                    Console.WriteLine($"Exception fetching diff: {ex.Message}");
                 }
             }
 

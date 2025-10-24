@@ -32,34 +32,34 @@ namespace RecoTrack.Infrastructure.Services
 
             if (string.IsNullOrEmpty(apiKey))
                 throw new InvalidOperationException("OpenRouter API key is missing.");
-
             if (string.IsNullOrEmpty(githubToken))
                 throw new InvalidOperationException("GitHub token is missing.");
 
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", apiKey);
+            _httpClient.DefaultRequestHeaders.Clear();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            _httpClient.DefaultRequestHeaders.Add("HTTP-Referer", "https://openrouter.ai");
+            _httpClient.DefaultRequestHeaders.Add("X-Title", "RecoTrack PR Review");
 
-            // Add GitHub token to Authorization header for diff URL request
-            var httpClientWithGitHubAuth = new HttpClient();
-            httpClientWithGitHubAuth.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", githubToken);
-
-            var prompt = $@"
-                Summarize this Pull Request in one concise, professional paragraph.
-                Title: {metadata.Title}
-                Description: {metadata.Description}
-                Branch: {metadata.BranchName}
-                Author: {metadata.Author}
-                Changed Files: {string.Join(", ", metadata.ChangedFiles)}
-";
+            // --- 🧠 Generate review prompt
+            var prompt = new StringBuilder();
+            prompt.AppendLine("You are an expert senior developer performing a code review.");
+            prompt.AppendLine("Analyze this pull request and write a concise professional summary and any actionable suggestions.");
+            prompt.AppendLine();
+            prompt.AppendLine($"**Title:** {metadata.Title}");
+            prompt.AppendLine($"**Description:** {metadata.Description}");
+            prompt.AppendLine($"**Branch:** {metadata.BranchName}");
+            prompt.AppendLine($"**Author:** {metadata.Author}");
+            prompt.AppendLine();
+            prompt.AppendLine("### Diff / Changed Code:");
+            prompt.AppendLine(metadata.Diff?.Length > 2000 ? metadata.Diff[..2000] + "..." : metadata.Diff);
 
             var payload = new
             {
                 model = "gpt-4o-mini",
                 messages = new[]
                 {
-                    new { role = "system", content = "You are an AI PR reviewer providing clear, concise summaries." },
-                    new { role = "user", content = prompt }
+                    new { role = "system", content = "You are an AI PR reviewer. Be concise, clear, and objective." },
+                    new { role = "user", content = prompt.ToString() }
                 }
             };
 
@@ -75,55 +75,37 @@ namespace RecoTrack.Infrastructure.Services
                 .GetProperty("content")
                 .GetString();
 
-            // Build review result
+            // --- 🧾 Review Result
             var reviewResult = new PrReviewResult
             {
-                Approved = !(metadata.ChangedFiles?.Any(f => f.Contains("TODO")) ?? false),
+                Approved = true,
                 Suggestions = new List<string>(),
                 Summary = summary ?? "No summary generated.",
                 ReviewedBy = "AI Reviewer",
                 Timestamp = DateTime.UtcNow
             };
 
-            if (metadata.ChangedFiles?.Any(f => f.Contains("TODO")) ?? false)
-            {
-                reviewResult.Suggestions.Add("Avoid committing temporary or TODO files.");
-            }
-            if (string.IsNullOrWhiteSpace(metadata.Description) || metadata.Description.Length < 15)
-            {
-                reviewResult.Suggestions.Add("Provide a more detailed PR description.");
-            }
-
-            // 🧠 Build Markdown comment for GitHub
+            // --- 🪶 Comment Markdown
             var comment = new StringBuilder();
-            comment.AppendLine("## 🤖 Automated PR Review Summary");
+            comment.AppendLine("## 🤖 Automated Pull Request Review");
             comment.AppendLine();
+            comment.AppendLine($"**PR:** #{metadata.PrNumber}");
             comment.AppendLine($"**Title:** {metadata.Title}");
+            comment.AppendLine($"**Author:** {metadata.Author}");
             comment.AppendLine();
-            comment.AppendLine("**Summary:**");
+            comment.AppendLine("### 📝 Summary");
             comment.AppendLine("> " + (summary?.Replace("\n", "\n> ") ?? "No summary generated."));
             comment.AppendLine();
-            if (reviewResult.Suggestions.Any())
-            {
-                comment.AppendLine("**Suggestions:**");
-                foreach (var s in reviewResult.Suggestions)
-                    comment.AppendLine($"- {s}");
-                comment.AppendLine();
-            }
             comment.AppendLine("---");
-            comment.AppendLine("_Generated by Automated PR Review Service_");
+            comment.AppendLine("_Generated by RecoTrack AI PR Reviewer_");
 
-            // ✅ Post PR comment (if repo and PR number are valid)
-            if (!string.IsNullOrEmpty(metadata.Repo) && metadata.PrNumber > 0)
+            try
             {
-                try
-                {
-                    await _githubClient.PostPrCommentAsync(metadata.Repo, metadata.PrNumber, comment.ToString());
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"⚠️ Failed to post PR comment: {ex.Message}");
-                }
+                await _githubClient.PostPrCommentAsync(metadata.Repo, metadata.PrNumber, comment.ToString());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Failed to post PR comment: {ex.Message}");
             }
 
             return reviewResult;

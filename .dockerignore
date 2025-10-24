@@ -1,6 +1,12 @@
-bin/
-obj/
-*.md
-.git
-.vscode
+**/bin/
+**/obj/
+**/TestResults/
+.vs/
+.git/
+.github/
 Dockerfile
+docker-compose.yml
+README.md
+*.user
+*.suo
+*.cache
