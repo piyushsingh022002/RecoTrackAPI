@@ -19,6 +19,9 @@ namespace RecoTrack.Application.Models
 
         public string Diff { get; set; } = string.Empty;
         public List<string> ChangedFiles { get; set; } = new();
+
+        public string CoverageSummary { get; set; } = string.Empty;
+        public string WorkflowRunUrl { get; set; } = string.Empty;
     }
 
 }
