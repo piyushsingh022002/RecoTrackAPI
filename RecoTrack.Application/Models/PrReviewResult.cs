@@ -14,5 +14,7 @@ namespace RecoTrack.Application.Models
         public string ReviewedBy { get; set; } = string.Empty;
 
         public DateTime Timestamp { get; set; }
+        public string HtmlReportUrl { get; set; } = string.Empty;
+
     }
 }

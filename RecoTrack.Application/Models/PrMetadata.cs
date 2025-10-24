@@ -22,5 +22,7 @@ namespace RecoTrack.Application.Models
         public string CoverageSummary { get; set; } = string.Empty;
         public string WorkflowRunUrl { get; set; } = string.Empty;
 
+        public string HtmlReportUrl { get; set; } = string.Empty;
+
     }
 }

@@ -97,12 +97,15 @@ jobs:
            echo "text=" >> $GITHUB_OUTPUT
           fi
 
-      - name: Add HTML link in PR comment
-        run: |
-         echo "Coverage report: [HTML Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)"
+      # - name: Add HTML link in PR comment
+      #   run: |
+      #    echo "Coverage report: [HTML Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)"
+
+
       - name: Trigger AI PR Review API
         run: |
           COVERAGE="${{ steps.cov.outputs.text }}"
+           HTML_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}?query=artifacts"
 
           # Build JSON safely
           PAYLOAD=$(jq -n \
@@ -115,6 +118,7 @@ jobs:
             --arg author "${{ github.event.pull_request.user.login }}" \
             --arg diffUrl "${{ github.event.pull_request.diff_url }}" \
             --arg coverageSummary "$COVERAGE" \
+            --arg htmlReportUrl "$HTML_URL" \
             --arg workflowRunUrl "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             '{
               prNumber: $prNumber,
@@ -126,6 +130,7 @@ jobs:
               author: $author,
               diffUrl: $diffUrl,
               coverageSummary: $coverageSummary,
+              htmlReportUrl: $htmlReportUrl,
               workflowRunUrl: $workflowRunUrl
             }'
           )
