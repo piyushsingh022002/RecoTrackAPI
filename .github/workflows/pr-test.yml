@@ -70,3 +70,26 @@ jobs:
         with:
           name: coverage-report
           path: ${{ github.workspace }}/TestResults/coverage-report
+
+
+  pr_review:
+   name: 🤖 Automated PR Review
+   runs-on: ubuntu-latest
+   if: github.event_name == 'pull_request'
+   needs: build-test-analyze
+   steps:
+    - name: Trigger AI PR Review API
+      run: |
+        echo "Triggering automated PR review..."
+        curl -X POST "https://recotrackapi.onrender.com/api/automatedprreview/analyze" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "prNumber": "${{ github.event.pull_request.number }}",
+            "repo": "${{ github.repository }}",
+            "title": "${{ github.event.pull_request.title }}",
+            "description": "${{ github.event.pull_request.body }}",
+            "branch": "${{ github.head_ref }}",
+            "baseBranch": "${{ github.base_ref }}",
+            "author": "${{ github.event.pull_request.user.login }}",
+            "diffUrl": "${{ github.event.pull_request.diff_url }}"
+          }'
