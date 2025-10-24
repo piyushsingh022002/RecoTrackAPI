@@ -48,12 +48,6 @@ jobs:
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
 
-      # - name: Debug coverage file locations
-      #   run: |
-      #     echo "=== Searching for coverage.cobertura.xml files in test projects ==="
-      #     find ${{ github.workspace }}/RecoTrackApi.ServiceTests/TestResults -type f -name "coverage.cobertura.xml" || true
-      #     find ${{ github.workspace }}/RecoTrackApi.ControllersTest/TestResults -type f -name "coverage.cobertura.xml" || true
-
       - name: Debug all coverage files
         run: |
          echo "=== Listing all coverage.cobertura.xml in workspace ==="
@@ -78,14 +72,27 @@ jobs:
         with:
           name: coverage-report
           path: ${{ github.workspace }}/TestResults/coverage-report
-
-  deploy-review:
-    needs: build-test-analyze
+  pr_review:
     runs-on: ubuntu-latest
-    environment:
-      name: staging  # 👈 This must match the name of your protected environment in GitHub Settings
-      url: https://your-staging-url.com  # Optional, just for display in GitHub UI
-
+    needs: build-test-analyze
+    if: github.event_name == 'pull_request'
     steps:
-    - name: Deployment review
-      run: echo "Ready for deployment review and approval."
+      - name: Send PR data to Automated Review API
+        env:
+          API_URL: ${{ secrets.PR_REVIEW_API_URL }}
+          API_KEY: ${{ secrets.PR_REVIEW_API_KEY }}
+        run: |
+          echo "Triggering automated PR review..."
+          curl -X POST "$API_URL/api/automatedprreview/analyze" \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: $API_KEY" \
+            -d '{
+              "prNumber": "${{ github.event.pull_request.number }}",
+              "repo": "${{ github.repository }}",
+              "title": "${{ github.event.pull_request.title }}",
+              "description": "${{ github.event.pull_request.body }}",
+              "branch": "${{ github.head_ref }}",
+              "baseBranch": "${{ github.base_ref }}",
+              "author": "${{ github.event.pull_request.user.login }}",
+              "diffUrl": "${{ github.event.pull_request.diff_url }}"
+            }'

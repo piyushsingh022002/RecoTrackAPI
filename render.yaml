@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: recotrack-api
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    region: frankfurt  # or oregon, singapore, etc.
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: GitHub__Token
+        sync: false
+      - key: OpenRouter__ApiKey
+        sync: false
+      - key: OpenRouter__ApiUrl
+        value: "https://openrouter.ai/api/v1/chat/completions"
+      - key: FrontendURL
+        value: "https://recotrackpiyushsingh.vercel.app"
