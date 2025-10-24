@@ -7,7 +7,10 @@ COPY ProjectRecoTrack.sln ./
 COPY RecoTrackApi/*.csproj ./RecoTrackApi/
 COPY RecoTrack.Application/*.csproj ./RecoTrack.Application/
 COPY RecoTrack.Infrastructure/*.csproj ./RecoTrack.Infrastructure/
+COPY RecoTrackApi.ControllersTest/*.csproj ./RecoTrackApi.ControllersTest/
+COPY RecoTrackApi.ServiceTests/*.csproj ./RecoTrackApi.ServiceTests/
 RUN dotnet restore ProjectRecoTrack.sln
+
 
 # Copy all source and build
 COPY . .
