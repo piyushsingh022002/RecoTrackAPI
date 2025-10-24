@@ -161,11 +161,18 @@ app.UseCors("FrontendPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseSwagger();
-app.UseSwaggerUI();
-
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+};
 
 app.MapControllers();
 app.MapHub<RecoTrackApi.Hubs.NotificationHub>("/notificationHub");
+app.MapGet("/", () => Results.Ok("RecoTrack API is running, Credits - PIYUSH SINGH!"));
 
+
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+app.Urls.Add($"http://0.0.0.0:{port}");
 app.Run();
+
