@@ -70,27 +70,3 @@ jobs:
         with:
           name: coverage-report
           path: ${{ github.workspace }}/TestResults/coverage-report
-  pr_review:
-    runs-on: ubuntu-latest
-    needs: build-test-analyze
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Send PR data to Automated Review API
-        env:
-          API_URL: ${{ secrets.PR_REVIEW_API_URL }}
-          API_KEY: ${{ secrets.PR_REVIEW_API_KEY }}
-        run: |
-          echo "Triggering automated PR review..."
-          curl -X POST "$API_URL/api/automatedprreview/analyze" \
-            -H "Content-Type: application/json" \
-            -H "x-api-key: $API_KEY" \
-            -d '{
-              "prNumber": "${{ github.event.pull_request.number }}",
-              "repo": "${{ github.repository }}",
-              "title": "${{ github.event.pull_request.title }}",
-              "description": "${{ github.event.pull_request.body }}",
-              "branch": "${{ github.head_ref }}",
-              "baseBranch": "${{ github.base_ref }}",
-              "author": "${{ github.event.pull_request.user.login }}",
-              "diffUrl": "${{ github.event.pull_request.diff_url }}"
-            }'
