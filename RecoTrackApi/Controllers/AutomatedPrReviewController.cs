@@ -43,7 +43,8 @@ namespace RecoTrackApi.Controllers
                 Repo = request.Repo ?? string.Empty,
                 PrNumber = request.PrNumber,
                 CoverageSummary = request.CoverageSummary ?? string.Empty,
-                WorkflowRunUrl = request.WorkflowRunUrl ?? string.Empty
+                WorkflowRunUrl = request.WorkflowRunUrl ?? string.Empty,
+                HtmlReportUrl = request.HtmlReportUrl ?? string.Empty
             }; 
 
             var result = await _reviewService.AnalyzePullRequestAsync(metadata);
