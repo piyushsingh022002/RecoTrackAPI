@@ -74,13 +74,23 @@ jobs:
 
   pr_review:
     runs-on: ubuntu-latest
+    needs: build-test-analyze   # ensures this job runs after the first one
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download Coverage Report
+        uses: actions/download-artifact@v4
+        with:
+         name: coverage-report
+         path: TestResults/coverage-report
+
       - name: Read coverage summary (if exists)
         id: cov
         run: |
           if [ -f TestResults/coverage-report/Summary.txt ]; then
-          SUMMARY=$(sed ':a;N;$!ba;s/\"/\\\"/g; s/$/\\n/; ' TestResults/coverage-report/Summary.txt)
-          echo "text=$SUMMARY" >> $GITHUB_OUTPUT
+           SUMMARY=$(sed ':a;N;$!ba;s/\"/\\\"/g; s/$/\\n/; ' TestResults/coverage-report/Summary.txt)
+           echo "text=$SUMMARY" >> $GITHUB_OUTPUT
           else
            echo "text=" >> $GITHUB_OUTPUT
           fi
