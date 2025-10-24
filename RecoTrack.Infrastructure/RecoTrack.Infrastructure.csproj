@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RecoTrack.Applications\RecoTrack.Application.csproj" />
+    <ProjectReference Include="..\RecoTrack.Application\RecoTrack.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

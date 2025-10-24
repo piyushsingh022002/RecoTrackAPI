@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecoTrackApi", "RecoTrackAp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecoTrackApi.ControllersTest", "RecoTrackApi.ControllersTest\RecoTrackApi.ControllersTest.csproj", "{668ECE69-D3EE-2EB1-7311-524685E9E0C5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecoTrack.Application", "RecoTrack.Applications\RecoTrack.Application.csproj", "{F5F29554-4E66-42CB-89E8-76F0569BB4B3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecoTrack.Application", "RecoTrack.Application\RecoTrack.Application.csproj", "{F5F29554-4E66-42CB-89E8-76F0569BB4B3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecoTrack.Infrastructure", "RecoTrack.Infrastructure\RecoTrack.Infrastructure.csproj", "{E3FCCDA1-8E13-444F-9C0F-8720FB3BD9ED}"
 EndProject
