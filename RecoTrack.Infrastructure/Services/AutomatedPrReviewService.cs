@@ -128,8 +128,10 @@ namespace RecoTrack.Infrastructure.Services
             {
                 comment.AppendLine("### 📈 Coverage Summary");
                 comment.AppendLine(metadata.CoverageSummary);
+
                 if (!string.IsNullOrWhiteSpace(metadata.HtmlReportUrl))
                 {
+                    comment.AppendLine("\n---");
                     comment.AppendLine($"\n📊 [View Full HTML Coverage Report]({metadata.HtmlReportUrl})");
                 }
                 comment.AppendLine();
