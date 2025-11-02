@@ -48,6 +48,7 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection(nameof(MongoDbSettings)));
 
+builder.Services.AddHealthChecks();
 // ----- Dependency Injection -----
 
 builder.Services.AddSingleton<IMongoDbService, MongoDbService>();
@@ -169,6 +170,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.MapHub<RecoTrackApi.Hubs.NotificationHub>("/notificationHub");
+app.MapHealthChecks("/health");
 app.MapGet("/", () => Results.Ok("RecoTrack API is running, Credits - PIYUSH SINGH!"));
 
 
