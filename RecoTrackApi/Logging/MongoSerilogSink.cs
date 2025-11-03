@@ -2,6 +2,7 @@
 using Serilog.Events;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Models;
+using RecoTrack.Application.Models;
 
 namespace RecoTrackApi.Logging
 {
