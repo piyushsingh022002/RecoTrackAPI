@@ -1,6 +1,7 @@
 ﻿using MongoDB.Driver;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Models;
+using RecoTrack.Application.Models;
 
 namespace RecoTrackApi.Repositories
 {

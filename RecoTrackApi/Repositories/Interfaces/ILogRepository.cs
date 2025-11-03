@@ -1,4 +1,5 @@
-﻿using RecoTrackApi.Models;
+﻿using RecoTrack.Application.Models;
+using RecoTrackApi.Models;
 
 namespace RecoTrackApi.Repositories.Interfaces
 {

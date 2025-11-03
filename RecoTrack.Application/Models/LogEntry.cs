@@ -2,7 +2,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace RecoTrackApi.Models
+namespace RecoTrack.Application.Models
 {
     public class LogEntry
     {
