@@ -74,7 +74,8 @@ builder.Services.AddScoped<IEmailJob, EmailJob>();
 builder.Services.AddScoped<IEmailAuditRepository, EmailAuditRepository>();
 
 builder.Services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
-builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
+
 //Hangfire Setup
 var hangfireOptions = new MongoStorageOptions
 {
