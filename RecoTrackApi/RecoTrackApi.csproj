@@ -30,7 +30,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RecoTrack.Application\RecoTrack.Application.csproj" />
+    <ProjectReference Include="..\RecoTrack.Data\RecoTrack.Data.csproj" />
     <ProjectReference Include="..\RecoTrack.Infrastructure\RecoTrack.Infrastructure.csproj" />
+    <ProjectReference Include="..\RecoTrack.Shared\RecoTrack.Shared.csproj" />
   </ItemGroup>
 
 </Project>
