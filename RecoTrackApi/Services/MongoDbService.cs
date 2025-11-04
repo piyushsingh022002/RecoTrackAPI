@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using RecoTrack.Shared.Settings;
 using RecoTrackApi.Configurations;
 
 namespace RecoTrackApi.Services

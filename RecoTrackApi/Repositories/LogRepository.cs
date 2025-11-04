@@ -1,7 +1,8 @@
 ﻿using MongoDB.Driver;
 using RecoTrackApi.Repositories.Interfaces;
-using RecoTrackApi.Models;
 using RecoTrack.Application.Models;
+using RecoTrack.Shared.Settings;
+
 
 namespace RecoTrackApi.Repositories
 {
@@ -11,8 +12,8 @@ namespace RecoTrackApi.Repositories
 
         public LogRepository(IMongoClient client, IConfiguration config)
         {
-            var mongoSettings = config.GetSection(nameof(Configurations.MongoDbSettings))
-                                      .Get<Configurations.MongoDbSettings>();
+            var mongoSettings = config.GetSection(nameof(MongoDbSettings))
+                                      .Get<MongoDbSettings>();
             if (mongoSettings == null)
                 throw new ArgumentNullException(nameof(mongoSettings), "MongoDbSettings section is missing in configuration.");
 

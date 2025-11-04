@@ -12,7 +12,9 @@ using MongoDB.Driver;
 using RecoTrack.Application.Interfaces;
 using RecoTrack.Application.Models;
 using RecoTrack.Application.Services;
+using RecoTrack.Data.Repositories;
 using RecoTrack.Infrastructure.Services;
+using RecoTrack.Shared.Settings;
 using RecoTrackApi.Configurations;
 using RecoTrackApi.Extensions;
 using RecoTrackApi.Jobs;
@@ -65,6 +67,14 @@ builder.Services.AddSingleton<IUserIdProvider, SignalRUserIdProvider>();
 builder.Services.AddHttpClient<IAutomatedPrReviewService, AutomatedPrReviewService>();
 builder.Services.AddHttpClient<IGitHubClientService, GitHubClientService>();
 builder.Services.AddScoped<IAutomatedPrReviewService, AutomatedPrReviewService>();
+
+// Job registration
+builder.Services.AddScoped<IEmailJob, EmailJob>();
+//emailserviceHangfire
+builder.Services.AddScoped<IEmailAuditRepository, EmailAuditRepository>();
+
+builder.Services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
+builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
 
 //Hangfire Setup
 var hangfireOptions = new MongoStorageOptions

@@ -13,6 +13,7 @@
     <PackageReference Include="Hangfire" Version="1.8.21" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.21" />
     <PackageReference Include="Hangfire.Mongo" Version="1.12.1" />
+    <PackageReference Include="MailKit" Version="4.14.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
@@ -30,7 +31,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RecoTrack.Application\RecoTrack.Application.csproj" />
+    <ProjectReference Include="..\RecoTrack.Data\RecoTrack.Data.csproj" />
     <ProjectReference Include="..\RecoTrack.Infrastructure\RecoTrack.Infrastructure.csproj" />
+    <ProjectReference Include="..\RecoTrack.Shared\RecoTrack.Shared.csproj" />
   </ItemGroup>
 
 </Project>

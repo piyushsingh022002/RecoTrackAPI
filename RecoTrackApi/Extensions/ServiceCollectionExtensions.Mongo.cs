@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using RecoTrack.Application.Models;
+using RecoTrack.Shared.Settings;
 using RecoTrackApi.Configurations;
 using Serilog;
 
