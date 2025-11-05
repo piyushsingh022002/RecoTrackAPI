@@ -171,7 +171,7 @@ var app = builder.Build();
 //Hangfire Dashboard
 var dashboardOptions = new DashboardOptions
 {
-    Authorization = new[] { new HangfireDashboardAuthorizationFilter(configuration) }
+    Authorization = new[] { new HangfireDashboardAuthorizationFilter() }
 };
 app.UseHangfireDashboard("/hangfire", dashboardOptions);
 
