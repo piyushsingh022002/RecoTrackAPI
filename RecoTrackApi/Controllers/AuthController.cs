@@ -52,7 +52,8 @@ namespace RecoTrackApi.Controllers
             if (!result.Success)
                 return BadRequest(new { Message = result.ErrorMessage });
 
-            return Ok(new { Message = "User registered successfully" });
+            //return Ok(new { Message = "User registered successfully" });
+            return Ok(result);
 
         }
 
