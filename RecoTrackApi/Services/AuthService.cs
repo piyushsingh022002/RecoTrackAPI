@@ -39,10 +39,17 @@ namespace RecoTrackApi.Services
             };
 
             await _userRepository.CreateUserAsync(user);
+            var token = GenerateJwtToken(user);
 
             _logger.LogInformation("User registered with ID: {UserId}", user.Id);
 
-            return RegisterResult.Ok();
+            var newUser = new User
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email
+            };
+            return RegisterResult.Ok(newUser, token);
         }
 
         public async Task<LoginResult> LoginAsync(LoginRequest request)
