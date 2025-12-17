@@ -168,6 +168,9 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+//correlationIdMiddleware
+app.UseMiddleware<CorrelationIdMiddleware>();
+
 //Hangfire Dashboard
 var dashboardOptions = new DashboardOptions
 {
