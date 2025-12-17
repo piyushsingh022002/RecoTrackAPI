@@ -1,4 +1,6 @@
-﻿namespace RecoTrackApi.Extensions
+﻿using Serilog.Context;
+
+namespace RecoTrackApi.Extensions
 {
     public class CorrelationIdMiddleware
     {
@@ -19,10 +21,26 @@
                 correlationId = Guid.NewGuid().ToString();
             }
 
+            //Adding Optional Configurable Prefix(Advance)
+            var prefix = context.RequestServices.GetService<IConfiguration>()
+                ?.GetValue<string>("CorrelationIdPrefix") ?? "";
+            var correlationIdValue = prefix + correlationId.ToString();
+
             context.Items[correlationHeader] = correlationId.ToString();
 
-            //pass to the next middleware pipeline
-            await _next(context);
+            // Add to response header BEFORE response starts
+            context.Response.OnStarting(() =>
+            {
+                context.Response.Headers[correlationHeader] = correlationId.ToString();
+                return Task.CompletedTask;
+            });
+
+            //pass to the next middleware pipeline pushing correlation id to serilog context
+            using(LogContext.PushProperty("CorrelationId", correlationId))
+            {
+                await _next(context);
+            }
+
         }
     }
 }
