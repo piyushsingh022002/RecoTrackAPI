@@ -55,6 +55,14 @@ namespace RecoTrackApi.CustomMiddlewares
 
             //store ClientId for downstream usage
             context.Items[ClientIdHeader] = clientId.ToString();
+
+            //write the client Id in the Response Header BEFORE response starts
+            context.Response.OnStarting(() =>
+            {
+                context.Response.Headers[ClientIdHeader] = clientId.ToString();
+                return Task.CompletedTask;
+            });
+
             await _next(context);
         }
 

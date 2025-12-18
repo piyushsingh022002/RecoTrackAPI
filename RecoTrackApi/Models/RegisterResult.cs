@@ -5,7 +5,7 @@
         public bool Success { get; private set; }
         public string? ErrorMessage { get; private set; }
         public string? Token { get; private set; }
-        public User User { get; private set; }
+        public User User { get; private set; } = null!;
 
 
         private RegisterResult() { }
