@@ -7,9 +7,30 @@ namespace RecoTrackApi.CustomMiddlewares
         private const string ClientIdHeader = "X-Client-Id";
         private const string CorrelationIdHeader = "X-Correlation-Id";
 
-        public HeaderValidationMiddleware(RequestDelegate next)
+        //predefined allowed clientIds can be added here for validation
+        private readonly HashSet<string> _allowedClients;
+
+        public HeaderValidationMiddleware(RequestDelegate next, IConfiguration configuration)
         {
             _next = next;
+
+            //detect environment and load allowed clients accordingly
+            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+
+            IEnumerable<string> allowed;
+
+            if (env == "Development")
+            {
+                allowed = configuration.GetSection("ClientSettings:AllowedClients").Get<string[]>() ?? Array.Empty<string>();
+            }
+            else
+            {
+                var envClients = Environment.GetEnvironmentVariable("ALLOWED_CLIENTS") ?? "";
+                allowed = envClients.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            }
+
+            _allowedClients = new HashSet<string>(allowed, StringComparer.OrdinalIgnoreCase);
+
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -29,6 +50,22 @@ namespace RecoTrackApi.CustomMiddlewares
                 await WriteBadRequest(context);
                 return;
             }
+
+            //Validate header value against allowlist
+            if (!_allowedClients.Contains(clientId.ToString()))
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                context.Response.ContentType = "application/json";
+                var errorResponse = new
+                {
+                    status = 400,
+                    error = $"ClientId '{clientId}' is not allowed",
+                    correlationId = context.Items["CorrelationId"]
+                };
+                await context.Response.WriteAsJsonAsync(errorResponse);
+                return; // short-circuit
+            }
+
 
             //store ClientId for downstream usage
             context.Items[ClientIdHeader] = clientId.ToString();
