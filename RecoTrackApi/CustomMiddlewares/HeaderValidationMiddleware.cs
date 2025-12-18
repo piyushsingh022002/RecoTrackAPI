@@ -7,6 +7,14 @@ namespace RecoTrackApi.CustomMiddlewares
         private const string ClientIdHeader = "X-Client-Id";
         private const string CorrelationIdHeader = "X-Correlation-Id";
 
+        //predefined allowed clientIds can be added here for validation
+        private static readonly HashSet<string> AllowedClients = new HashSet<string>
+        {
+            "web-ui-v1.0",
+            "postman-v1.0",
+            "swagger-ui-v1.0"
+        };
+
         public HeaderValidationMiddleware(RequestDelegate next)
         {
             _next = next;
@@ -28,6 +36,21 @@ namespace RecoTrackApi.CustomMiddlewares
             {
                 await WriteBadRequest(context);
                 return;
+            }
+
+            //Validate header value against allowlist
+            if (!AllowedClients.Contains(clientId.ToString()))
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                context.Response.ContentType = "application/json";
+                var errorResponse = new
+                {
+                    status = 400,
+                    error = $"ClientId '{clientId}' is not allowed",
+                    correlationId = context.Items["CorrelationId"]
+                };
+                await context.Response.WriteAsJsonAsync(errorResponse);
+                return; // short-circuit
             }
 
             //store ClientId for downstream usage
