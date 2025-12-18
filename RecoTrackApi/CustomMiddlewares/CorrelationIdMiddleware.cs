@@ -1,6 +1,6 @@
 ﻿using Serilog.Context;
 
-namespace RecoTrackApi.Extensions
+namespace RecoTrackApi.CustomMiddlewares
 {
     public class CorrelationIdMiddleware
     {

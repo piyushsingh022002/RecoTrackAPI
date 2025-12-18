@@ -16,6 +16,7 @@ using RecoTrack.Data.Repositories;
 using RecoTrack.Infrastructure.Services;
 using RecoTrack.Shared.Settings;
 using RecoTrackApi.Configurations;
+using RecoTrackApi.CustomMiddlewares;
 using RecoTrackApi.Extensions;
 using RecoTrackApi.Jobs;
 using RecoTrackApi.Repositories;
@@ -75,6 +76,9 @@ builder.Services.AddScoped<IEmailAuditRepository, EmailAuditRepository>();
 
 builder.Services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
 builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
+
+//custom Extension method for swagger 
+builder.Services.AddSwaggerDocumentation();
 
 //Hangfire Setup
 var hangfireOptions = new MongoStorageOptions
@@ -145,31 +149,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
-//Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "StudentRoutineTracker API", Version = "v1" });
-    var securitySchema = new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Description = "Enter JWT Bearer token like this: Bearer {token}",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-    };
-    c.AddSecurityDefinition("Bearer", securitySchema);
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        { securitySchema, new[] { "Bearer" } }
-    });
-});
-
 var app = builder.Build();
 
 //correlationIdMiddleware
 app.UseMiddleware<CorrelationIdMiddleware>();
+
+//Header Validation Middleware
+app.UseMiddleware<HeaderValidationMiddleware>();
 
 //Hangfire Dashboard
 var dashboardOptions = new DashboardOptions

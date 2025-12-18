@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace RecoTrackApi.Extensions
+namespace RecoTrackApi.CustomMiddlewares
 {
     public class RequestTimingMiddleware
     {
