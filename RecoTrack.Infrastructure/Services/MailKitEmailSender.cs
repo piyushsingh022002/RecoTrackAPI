@@ -1,14 +1,9 @@
-﻿using MailKit.Net.Smtp;
-using MailKit.Security;
+﻿using SendGrid;
+using SendGrid.Helpers.Mail;
 using Microsoft.Extensions.Options;
-using MimeKit;
 using RecoTrack.Application.Interfaces;
 using RecoTrack.Application.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace RecoTrack.Infrastructure.Services
@@ -33,26 +28,39 @@ namespace RecoTrack.Infrastructure.Services
 
         public async Task SendAsync(EmailMessage message)
         {
-            var mimeMessage = new MimeMessage();
-            mimeMessage.From.Add(MailboxAddress.Parse(_opts.From ?? _opts.User ?? "no-reply@example.com"));
-            mimeMessage.To.Add(MailboxAddress.Parse(message.To));
-            mimeMessage.Subject = message.Subject;
+            var apiKey = Environment.GetEnvironmentVariable("SENDGRID_API_KEY");
+            if (string.IsNullOrWhiteSpace(apiKey))
+                throw new InvalidOperationException("SENDGRID_API_KEY environment variable is not set.");
 
-            mimeMessage.Body = new TextPart(message.IsBodyHtml ? "html" : "plain")
+            var client = new SendGridClient(apiKey);
+            var from = new EmailAddress(_opts.From ?? "no-reply@example.com", "RecoTrack");
+            var to = new EmailAddress(message.To);
+            var subject = message.Subject;
+            var plainTextContent = message.IsBodyHtml ? null : message.Body;
+            var htmlContent = message.IsBodyHtml ? message.Body : null;
+            var msg = MailHelper.CreateSingleEmail(
+                from,
+                to,
+                subject,
+                plainTextContent ?? message.Body,
+                htmlContent ?? message.Body
+            );
+            try
             {
-                Text = message.Body
-            };
-
-            // Use explicit type to resolve ambiguity
-            using (var client = new MailKit.Net.Smtp.SmtpClient())
+                var response = await client.SendEmailAsync(msg);
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Optionally log the error details
+                    var errorBody = await response.Body.ReadAsStringAsync();
+                    // You can use your logging framework here
+                    Console.Error.WriteLine($"SendGrid send failed: {response.StatusCode} {errorBody}");
+                }
+            }
+            catch (Exception ex)
             {
-                await client.ConnectAsync(_opts.Host, _opts.Port, SecureSocketOptions.StartTls);
-
-                if (!string.IsNullOrEmpty(_opts.User))
-                    await client.AuthenticateAsync(_opts.User, _opts.Password);
-
-                await client.SendAsync(mimeMessage);
-                await client.DisconnectAsync(true);
+                // Log or handle exception gracefully
+                Console.Error.WriteLine($"Exception sending email via SendGrid: {ex.Message}");
+                throw;
             }
         }
     }
