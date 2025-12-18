@@ -35,6 +35,12 @@ namespace RecoTrackApi.CustomMiddlewares
 
         public async Task InvokeAsync(HttpContext context)
         {
+            if (HttpMethods.IsOptions(context.Request.Method))
+            {
+                await _next(context);
+                return;
+            }
+
             var path = context.Request.Path;
 
             //allowed Path Lists
