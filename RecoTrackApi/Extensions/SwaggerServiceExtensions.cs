@@ -1,4 +1,5 @@
 ﻿using Microsoft.OpenApi.Models;
+using RecoTrackApi.Swagger;
 
 namespace RecoTrackApi.Extensions { 
 
@@ -41,6 +42,9 @@ public static class SwaggerServiceExtensions
                     Array.Empty<string>()
                 }
             });
+
+            options.OperationFilter<ClientIdHeaderOperationFilter>();
+
         });
 
         return services;
