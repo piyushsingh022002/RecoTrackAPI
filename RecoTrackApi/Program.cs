@@ -62,7 +62,6 @@ builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<INoteService, NoteService>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddSingleton<IUserIdProvider, SignalRUserIdProvider>();
 
 //HTTP Clients
 builder.Services.AddHttpClient<IAutomatedPrReviewService, AutomatedPrReviewService>();
@@ -76,9 +75,6 @@ builder.Services.AddScoped<IEmailAuditRepository, EmailAuditRepository>();
 
 builder.Services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
 builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
-
-//custom Extension method for swagger 
-builder.Services.AddSwaggerDocumentation();
 
 //Hangfire Setup
 var hangfireOptions = new MongoStorageOptions
@@ -115,20 +111,6 @@ builder.Host.UseSerilog((hostingContext, services, loggerConfiguration) =>
         .WriteTo.Async(a => a.Sink(new RecoTrackApi.Logging.MongoSerilogSink(repo)));
 });
 
-//CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("FrontendPolicy", policy =>
-    {
-        policy.WithOrigins(
-            "https://recotrackpiyushsingh.vercel.app",
-            "http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
-
 //JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -145,9 +127,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-//Controllers & SignalR
-builder.Services.AddControllers();
-builder.Services.AddSignalR();
+//API Services
+builder.Services.AddApi(builder.Configuration);
 
 var app = builder.Build();
 
