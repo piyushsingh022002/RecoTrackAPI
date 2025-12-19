@@ -65,20 +65,7 @@ var hangfireOptions = new MongoStorageOptions
 };
 
 //JWT Authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = "RecoTrackAPI",
-            ValidAudience = "RecoTrackWeb",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ClockSkew = TimeSpan.Zero
-        };
-    });
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 //API Services
 builder.Services.AddApi(builder.Configuration);
