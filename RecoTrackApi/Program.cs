@@ -48,33 +48,8 @@ if (string.IsNullOrEmpty(jwtKey))
 //Health Checks
 builder.Services.AddHealthChecks();
 
-//Dependency Injection: Repositories & Services
-builder.Services.AddSingleton<IMongoDbService, MongoDbService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IActivityService, ActivityService>();
-builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
-builder.Services.AddSingleton<RecoTrackApi.Repositories.Interfaces.ILogRepository, RecoTrackApi.Repositories.LogRepository>();
-builder.Services.AddScoped<RecoTrack.Application.Interfaces.ILogRepository, RecoTrack.Infrastructure.Services.LogRepository>();
-builder.Services.AddScoped<IJobMetricsRepository, JobMetricsRepository>();
-builder.Services.AddScoped<ILogCleanerService, LogCleanerService>();
-builder.Services.AddScoped<INoteRepository, NoteRepository>();
-builder.Services.AddScoped<INoteService, NoteService>();
-builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
-
-//HTTP Clients
-builder.Services.AddHttpClient<IAutomatedPrReviewService, AutomatedPrReviewService>();
-builder.Services.AddHttpClient<IGitHubClientService, GitHubClientService>();
-builder.Services.AddScoped<IAutomatedPrReviewService, AutomatedPrReviewService>();
-
-// Job registration
-builder.Services.AddScoped<IEmailJob, EmailJob>();
-//emailserviceHangfire
-builder.Services.AddScoped<IEmailAuditRepository, EmailAuditRepository>();
-
-builder.Services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
-builder.Services.AddScoped<IEmailSender, MailKitEmailSender>();
+//applicaton layer service extension
+builder.Services.AddApplication();
 
 //Hangfire Setup
 var hangfireOptions = new MongoStorageOptions
@@ -86,19 +61,6 @@ var hangfireOptions = new MongoStorageOptions
         BackupStrategy = new CollectionMongoBackupStrategy()
     }
 };
-builder.Services.AddHangfire((provider, config) =>
-{
-    var mongoClient = provider.GetRequiredService<IMongoClient>();
-    var mongoSettings = builder.Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
-    if (mongoSettings == null)
-        throw new InvalidOperationException("MongoDB settings are not configured properly");
-    config.UseMongoStorage(
-        mongoClient,
-        mongoSettings.DatabaseName,
-        hangfireOptions);
-});
-builder.Services.AddHangfireServer();
-
 
 //Serilog with Mongo Sink
 builder.Host.UseSerilog((hostingContext, services, loggerConfiguration) =>
@@ -130,51 +92,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 //API Services
 builder.Services.AddApi(builder.Configuration);
 
+//infrastructure layer service extension
+builder.Services.AddInfrastructure(builder.Configuration);
+
+
 var app = builder.Build();
-
-//correlationIdMiddleware
-app.UseMiddleware<CorrelationIdMiddleware>();
-
-//Header Validation Middleware
-app.UseMiddleware<HeaderValidationMiddleware>();
-
-//global Exception Handler Middleware 
-app.UseMiddleware<GlobalExceptionMiddleware>();
-
-//Hangfire Dashboard
-var dashboardOptions = new DashboardOptions
-{
-    Authorization = new[] { new HangfireDashboardAuthorizationFilter() }
-};
-app.UseHangfireDashboard("/hangfire", dashboardOptions);
-
-// Register recurring job: every 5 minutes
-RecurringJob.AddOrUpdate<LogCleanupJob>(
-    "log-cleanup",
-    job => job.ExecuteAsync(),
-    "*/5 * * * *"
-);
 
 //Logging Startup Info
 Log.Information("Application Environment: {Environment}", app.Environment.EnvironmentName);
 
-//Middleware
-app.UseSerilogRequestLogging();
-app.UseRequestTiming();
-app.UseCors("FrontendPolicy");
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseApiMiddlewares();
+app.UseSecurity();
+app.UseObservability();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.MapControllers();
-app.MapHub<RecoTrackApi.Hubs.NotificationHub>("/notificationHub");
-app.MapHealthChecks("/health");
-app.MapGet("/", () => Results.Ok("RecoTrack API is running, Credits - PIYUSH SINGH!"));
+app.MapApiEndpoints();
 
 app.Run();
 
