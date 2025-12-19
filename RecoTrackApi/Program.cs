@@ -157,6 +157,9 @@ app.UseMiddleware<CorrelationIdMiddleware>();
 //Header Validation Middleware
 app.UseMiddleware<HeaderValidationMiddleware>();
 
+//global Exception Handler Middleware 
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
 //Hangfire Dashboard
 var dashboardOptions = new DashboardOptions
 {
