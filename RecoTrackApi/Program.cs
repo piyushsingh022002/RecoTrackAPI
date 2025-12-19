@@ -19,6 +19,7 @@ using RecoTrackApi.Configurations;
 using RecoTrackApi.CustomMiddlewares;
 using RecoTrackApi.Extensions;
 using RecoTrackApi.Jobs;
+using RecoTrackApi.Logging;
 using RecoTrackApi.Repositories;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Services;
@@ -29,10 +30,11 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 //Serilog Bootstrap Logger
-//(Logs to console until DI container is built)
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
+//Serilog with Mongo Sink
+builder.Host.UseSerilog(SerilogConfiguration.ConfigureSerilog);
 
 //Configuration
 var configuration = builder.Configuration;
@@ -61,17 +63,6 @@ var hangfireOptions = new MongoStorageOptions
         BackupStrategy = new CollectionMongoBackupStrategy()
     }
 };
-
-//Serilog with Mongo Sink
-builder.Host.UseSerilog((hostingContext, services, loggerConfiguration) =>
-{
-    var repo = services.GetRequiredService<RecoTrackApi.Repositories.Interfaces.ILogRepository>();
-    loggerConfiguration
-        .Enrich.FromLogContext()
-        .WriteTo.Console()
-        .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day)
-        .WriteTo.Async(a => a.Sink(new RecoTrackApi.Logging.MongoSerilogSink(repo)));
-});
 
 //JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
