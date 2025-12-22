@@ -18,7 +18,9 @@ namespace RecoTrackApi.Extensions
             {
                 options.AddPolicy("FrontendPolicy", policy =>
                 {
-                    policy.WithOrigins()
+                    policy.WithOrigins(
+                        "https://recotrackpiyushsingh.vercel.app",
+                            "http://localhost:5173")
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials();
