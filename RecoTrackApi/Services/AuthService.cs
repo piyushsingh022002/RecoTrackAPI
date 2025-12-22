@@ -11,12 +11,18 @@ namespace RecoTrackApi.Services
     public class AuthService : IAuthService
     {
         private readonly string _jwtKey;
+        private readonly string _issuer;
+        private readonly string _audience;
         private readonly IUserRepository _userRepository;
         private readonly ILogger<AuthService> _logger;
 
         public AuthService(IConfiguration configuration, IUserRepository userRepository, ILogger<AuthService> logger)
         {
             _jwtKey = configuration["JwtSettings:SecretKey"]!;
+            // Read issuer and audience from configuration; fall back to existing literals if not present
+            _issuer = configuration["JwtSettings:Issuer"] ?? "RecoTrackAPI - Service";
+            _audience = configuration["JwtSettings:Audience"] ?? "RecoTrackWeb - Client";
+
             //Console.WriteLine("GENERATOR JWT KEY: " + _jwtKey);
             _userRepository = userRepository;
             _logger = logger;
@@ -92,8 +98,8 @@ namespace RecoTrackApi.Services
             };
 
             var token = new JwtSecurityToken(
-                issuer:"RecoTrackAPI",
-                audience:"RecoTrackWeb",
+                issuer: _issuer,
+                audience: _audience,
                 claims: claims,
                 expires: DateTime.UtcNow.AddHours(1),
                 signingCredentials: creds
