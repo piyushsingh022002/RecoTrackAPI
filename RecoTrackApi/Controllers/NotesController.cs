@@ -4,7 +4,6 @@ using RecoTrackApi.DTOs;
 using RecoTrackApi.Models;
 using RecoTrackApi.Services.Interfaces;
 using System.Security.Claims;
-using YourApp.Models;
 using Serilog;
 
 namespace RecoTrackApi.Controllers
@@ -54,6 +53,34 @@ namespace RecoTrackApi.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while retrieving notes for user {UserId} at {Timestamp}", userId, DateTime.UtcNow);
+                return StatusCode(500, "An unexpected error occurred.");
+            }
+        }
+
+        [HttpGet("deleted")]
+        public async Task<IActionResult> GetDeletedNotes()
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                _logger.LogWarning("Unauthorized access attempt to deleted notes at {Timestamp}", DateTime.UtcNow);
+                return Unauthorized();
+            }
+
+            try
+            {
+                var deletedNotes = await _noteService.GetDeletedNotesAsync(userId);
+                _logger.LogInformation("Returning {Count} deleted notes for user {UserId}", deletedNotes.Count, userId);
+
+                if(deletedNotes.Count == 0)
+                {
+                    return Ok("Deleted Notes are empty for now !!");
+                }
+                return Ok(deletedNotes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving deleted notes for user {UserId}", userId);
                 return StatusCode(500, "An unexpected error occurred.");
             }
         }
@@ -203,7 +230,7 @@ namespace RecoTrackApi.Controllers
 
             try
             {
-                var note = await _noteService.GetNoteByIdAsync(id, userId);
+                var noteToDelete = await _noteService.GetNoteByIdAsync(id, userId);
                 var success = await _noteService.DeleteNoteAsync(id, userId);
 
                 if (!success)
@@ -213,17 +240,61 @@ namespace RecoTrackApi.Controllers
                 }
 
                 // Send notification via SignalR and store in DB
-                var message = note != null ? $"{note.Title} is deleted" : $"Note is deleted";
+                var message = noteToDelete != null ? $"{noteToDelete.Title} is deleted" : "Note is deleted";
                 var notifications = await _notificationService.SendNotificationAsync(userId, message);
                 await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
 
                 _logger.LogInformation("Note {NoteId} successfully deleted by user {UserId}", id, userId);
-                return NoContent();
+
+                var username = User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                return Ok(new { DeletedNoteId = id, Username = username });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while deleting note {NoteId} for user {UserId}", id, userId);
                 return StatusCode(500, "An unexpected error occurred while deleting the note.");
+            }
+        }
+
+        [HttpPost("{id}/restore")]
+        public async Task<IActionResult> RestoreNote(string id)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                _logger.LogWarning("Unauthorized restore attempt on note {NoteId} at {Timestamp}", id, DateTime.UtcNow);
+                return Unauthorized("Invalid or missing user ID.");
+            }
+
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                _logger.LogWarning("Restore attempt with empty note ID by user {UserId} at {Timestamp}", userId, DateTime.UtcNow);
+                return BadRequest("Note ID is required.");
+            }
+
+            _logger.LogInformation("User {UserId} attempting to restore note {NoteId} at {Timestamp}", userId, id, DateTime.UtcNow);
+
+            try
+            {
+                var restored = await _noteService.RestoreNoteAsync(id, userId);
+                if (!restored)
+                {
+                    _logger.LogWarning("Note {NoteId} not found or not deleted for user {UserId}", id, userId);
+                    return NotFound();
+                }
+
+                var note = await _noteService.GetNoteByIdAsync(id, userId);
+                var message = note != null ? $"{note.Title} is restored" : "Note is restored";
+                var notifications = await _notificationService.SendNotificationAsync(userId, message);
+                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
+
+                _logger.LogInformation("Note {NoteId} successfully restored by user {UserId}", id, userId);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while restoring note {NoteId} for user {UserId}", id, userId);
+                return StatusCode(500, "An unexpected error occurred while restoring the note.");
             }
         }
 

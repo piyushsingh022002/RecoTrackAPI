@@ -1,7 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace YourApp.Models
+namespace RecoTrackApi.Models
 {
     public class Note
     {
@@ -29,5 +29,8 @@ namespace YourApp.Models
 
         [BsonElement("updatedAt")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        [BsonElement("deletedAt")]
+        public DateTime? DeletedAt { get; set; }
     }
 }
