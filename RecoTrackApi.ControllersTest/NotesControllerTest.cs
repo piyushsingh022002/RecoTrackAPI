@@ -15,7 +15,6 @@ namespace RecoTrackApi.ControllersTest
     using RecoTrackApi.Models;
     using RecoTrackApi.Services.Interfaces;
     using Microsoft.AspNetCore.SignalR;
-    using YourApp.Models;
     using System.Security.Claims;
     using System.Collections.Generic;
     using System.Threading.Tasks;
