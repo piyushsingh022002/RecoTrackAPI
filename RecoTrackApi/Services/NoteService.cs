@@ -2,7 +2,6 @@ using RecoTrackApi.DTOs;
 using RecoTrackApi.Models;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Services.Interfaces;
-using YourApp.Models;
 
 namespace RecoTrackApi.Services
 {
@@ -17,11 +16,18 @@ namespace RecoTrackApi.Services
 
         public async Task<List<Note>> GetNotesAsync(string userId)
         {
-            //Todo:: No need to verify the userId here if it's already verified in the controller
             if (string.IsNullOrWhiteSpace(userId))
                 throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
 
             return await _noteRepository.GetNotesByUserIdAsync(userId);
+        }
+
+        public async Task<List<Note>> GetDeletedNotesAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+
+            return await _noteRepository.GetDeletedNotesByUserIdAsync(userId);
         }
 
         public async Task<Note?> GetNoteByIdAsync(string id, string userId)
@@ -46,9 +52,9 @@ namespace RecoTrackApi.Services
             if (string.IsNullOrWhiteSpace(note.Title))
                 throw new ArgumentException("Note title is required.", nameof(note.Title));
 
+            note.DeletedAt = null;
             await _noteRepository.CreateNoteAsync(note);
         }
-
 
         public async Task<bool> UpdateNoteAsync(Note note, string userId)
         {
@@ -65,7 +71,6 @@ namespace RecoTrackApi.Services
             if (existing == null)
                 return false;
 
-            // Preserve original creation date and ensure correct user association
             note.CreatedAt = existing.CreatedAt;
             note.UserId = userId;
 
@@ -85,13 +90,11 @@ namespace RecoTrackApi.Services
             if (existing == null)
                 return false;
 
-            // Update fields from DTO
             existing.Title = updateDto.Title;
             existing.Content = updateDto.Content;
             existing.Tags = updateDto.Tags ?? new List<string>();
             existing.MediaUrls = updateDto.MediaUrls ?? new List<string>();
             existing.UpdatedAt = DateTime.UtcNow;
-            // CreatedAt and UserId remain unchanged
 
             return await _noteRepository.UpdateNoteAsync(existing);
         }
@@ -100,17 +103,24 @@ namespace RecoTrackApi.Services
         {
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
-
             if (string.IsNullOrWhiteSpace(userId))
                 throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
 
             return await _noteRepository.DeleteNoteAsync(id, userId);
         }
 
+        public async Task<bool> RestoreNoteAsync(string id, string userId)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+
+            return await _noteRepository.RestoreNoteAsync(id, userId);
+        }
 
         public async Task<List<NoteActivityDto>> GetNoteActivityAsync(string userId, DateTime startDate, DateTime endDate)
         {
-            // You may want to inject IActivityRepository instead for separation, but for now, call NoteRepository if it implements the method
             if (_noteRepository is IActivityRepository activityRepo)
                 return await activityRepo.GetNoteActivityAsync(userId, startDate, endDate);
             throw new NotImplementedException("Note activity not implemented in repository");

@@ -2,7 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using RecoTrackApi.DTOs;
 using RecoTrackApi.Repositories.Interfaces;
-using YourApp.Models;
+using RecoTrackApi.Models;
 
 namespace RecoTrackApi.Repositories
 {
@@ -19,6 +19,7 @@ namespace RecoTrackApi.Repositories
         {
             var filter = Builders<Note>.Filter.And(
                 Builders<Note>.Filter.Eq(n => n.UserId, userId),
+                Builders<Note>.Filter.Eq(n => n.DeletedAt, null),
                 Builders<Note>.Filter.Gte(n => n.CreatedAt, startDate.Date),
                 Builders<Note>.Filter.Lte(n => n.CreatedAt, endDate.Date.AddDays(1).AddTicks(-1))
             );
