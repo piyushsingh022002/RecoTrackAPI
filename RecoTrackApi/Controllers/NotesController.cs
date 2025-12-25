@@ -289,7 +289,8 @@ namespace RecoTrackApi.Controllers
                 await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
 
                 _logger.LogInformation("Note {NoteId} successfully restored by user {UserId}", id, userId);
-                return NoContent();
+                var username = User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                return Ok(new { RestoredNoteId = id, Username = username });
             }
             catch (Exception ex)
             {
