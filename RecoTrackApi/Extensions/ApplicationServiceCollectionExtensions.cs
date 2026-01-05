@@ -1,6 +1,7 @@
 ﻿using RecoTrack.Application.Interfaces;
 using RecoTrack.Application.Services;
 using RecoTrack.Infrastructure.Services;
+using RecoTrack.Infrastructure.ServicesV2;
 using RecoTrackApi.Repositories;
 using RecoTrackApi.Services;
 using RecoTrackApi.Services.Interfaces;
@@ -19,6 +20,8 @@ namespace RecoTrackApi.Extensions
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<ILogCleanerService, LogCleanerService>();
             services.AddScoped<IJobMetricsRepository, JobMetricsRepository>();
+            services.AddHttpClient<IInternalHttpClient, InternalHttpClient>();
+            services.AddSingleton<IServiceTokenGenerator, ServiceTokenGenerator>();
 
             return services;
         }
