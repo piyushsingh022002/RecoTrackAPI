@@ -1,4 +1,7 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using RecoTrack.Application.Interfaces;
 using RecoTrack.Shared.Settings;
 using System.IdentityModel.Tokens.Jwt;
@@ -12,9 +15,9 @@ namespace RecoTrack.Infrastructure.ServicesV2
     {
         private readonly ServiceJwtSettings _settings;
 
-        public ServiceTokenGenerator(ServiceJwtSettings settings)
+        public ServiceTokenGenerator(IOptions<ServiceJwtSettings> options)
         {
-            _settings = settings;
+            _settings = options?.Value ?? throw new ArgumentNullException(nameof(options));
         }
 
         public string GenerateToken()

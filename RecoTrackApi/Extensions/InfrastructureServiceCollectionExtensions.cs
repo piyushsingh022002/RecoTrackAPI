@@ -2,6 +2,8 @@
 using Hangfire.Mongo;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using RecoTrack.Application.Interfaces;
 using RecoTrack.Data.Repositories;
@@ -36,6 +38,10 @@ namespace RecoTrackApi.Extensions
             // Email
             services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
             services.AddScoped<IEmailSender, MailKitEmailSender>();
+
+            // Service token settings
+            services.Configure<ServiceJwtSettings>(
+                configuration.GetSection("ServiceJwtSettings"));
 
             // Hangfire
             var hangfireOptions = new MongoStorageOptions

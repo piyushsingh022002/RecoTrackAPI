@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RecoTrack.Application.Interfaces
@@ -12,6 +13,7 @@ namespace RecoTrack.Application.Interfaces
             string url,
             TRequest body,
             string userJwt,
+            string? serviceJwt = null,
             CancellationToken cancellationToken = default);
 
         Task<TResponse> GetAsync<TResponse>(

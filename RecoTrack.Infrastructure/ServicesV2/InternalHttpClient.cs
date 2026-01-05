@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RecoTrack.Infrastructure.ServicesV2
@@ -24,10 +25,10 @@ namespace RecoTrack.Infrastructure.ServicesV2
             string url,
             TRequest body,
             string userJwt,
+            string? serviceJwt = null,
             CancellationToken cancellationToken = default)
         {
-            // Generate Service JWT
-            string serviceJwt = _serviceTokenGenerator.GenerateToken();
+            var resolvedServiceJwt = serviceJwt ?? _serviceTokenGenerator.GenerateToken();
 
             // Serialize body
             var json = JsonSerializer.Serialize(body);
@@ -36,7 +37,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
             // Add headers
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
-            _httpClient.DefaultRequestHeaders.Add("X-Service-Authorization", serviceJwt);
+            _httpClient.DefaultRequestHeaders.Add("X-Service-Authorization", resolvedServiceJwt);
             _httpClient.DefaultRequestHeaders.Add("X-Request-ID", Guid.NewGuid().ToString());
 
             // Send POST request

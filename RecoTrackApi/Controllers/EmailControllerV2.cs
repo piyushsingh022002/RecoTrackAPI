@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RecoTrack.Infrastructure.ServicesV2;
 
 namespace RecoTrackApi.Controllers
 {
+    [Authorize]
+    [ApiController]
     public class EmailControllerV2 : ControllerBase
     {
         private readonly IEmailService _emailService;
@@ -11,33 +14,26 @@ namespace RecoTrackApi.Controllers
         {
             _emailService = emailService;
         }
-
+      
         [HttpPost("send")]
         public async Task<IActionResult> SendEmail([FromBody] EmailRequest request)
         {
-            // Get User JWT from Authorization header
-            var userJwt = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-
-            if (string.IsNullOrEmpty(userJwt))
+            if (request == null || string.IsNullOrWhiteSpace(request.Email_Action))
             {
-                return Unauthorized("User JWT is missing");
+                return NoContent();
             }
 
-            bool result = await _emailService.SendEmailAsync(userJwt, request.To, request.Subject, request.Body);
+            var userJwt = Request.Headers["Authorization"].ToString().Replace("Bearer ", string.Empty);
+            await _emailService.SendEmailAsync(userJwt, request.Email_Action);
 
-            if (!result)
-                return StatusCode(500, "Failed to send email");
-
-            return Ok(new { Success = true });
+            return Ok();
         }
 
 
     }
     public class EmailRequest
     {
-        public string To { get; set; } = default!;
-        public string Subject { get; set; } = default!;
-        public string Body { get; set; } = default!;
+        public string Email_Action { get; set; } = default!;
     }
 
 }
