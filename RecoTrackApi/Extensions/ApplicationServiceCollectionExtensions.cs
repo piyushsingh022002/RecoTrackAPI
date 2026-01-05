@@ -22,6 +22,7 @@ namespace RecoTrackApi.Extensions
             services.AddScoped<IJobMetricsRepository, JobMetricsRepository>();
             services.AddHttpClient<IInternalHttpClient, InternalHttpClient>();
             services.AddSingleton<IServiceTokenGenerator, ServiceTokenGenerator>();
+            services.AddScoped<IEmailService, EmailService>();
 
             return services;
         }
