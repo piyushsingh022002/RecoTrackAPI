@@ -46,7 +46,8 @@ namespace RecoTrack.Infrastructure.ServicesV2
 
             // Deserialize response
             var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            return await JsonSerializer.DeserializeAsync<TResponse>(responseStream, cancellationToken: cancellationToken);
+            var deserialized = await JsonSerializer.DeserializeAsync<TResponse>(responseStream, cancellationToken: cancellationToken);
+            return deserialized ?? throw new InvalidOperationException("Received an empty response from the HTTP call.");
         }
 
         public async Task<TResponse> GetAsync<TResponse>(
@@ -65,7 +66,8 @@ namespace RecoTrack.Infrastructure.ServicesV2
             response.EnsureSuccessStatusCode();
 
             var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            return await JsonSerializer.DeserializeAsync<TResponse>(responseStream, cancellationToken: cancellationToken);
+            var deserialized = await JsonSerializer.DeserializeAsync<TResponse>(responseStream, cancellationToken: cancellationToken);
+            return deserialized ?? throw new InvalidOperationException("Received an empty response from the HTTP call.");
         }
     }
 }
