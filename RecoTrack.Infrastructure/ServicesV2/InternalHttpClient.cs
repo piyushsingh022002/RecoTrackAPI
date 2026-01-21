@@ -37,7 +37,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
             // Add headers
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
-            _httpClient.DefaultRequestHeaders.Add("X-Service-Authorization", resolvedServiceJwt);
+            _httpClient.DefaultRequestHeaders.Add("X-Service-Token", resolvedServiceJwt);
             _httpClient.DefaultRequestHeaders.Add("X-Request-ID", Guid.NewGuid().ToString());
 
             // Send POST request
@@ -59,7 +59,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
 
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
-            _httpClient.DefaultRequestHeaders.Add("X-Service-Authorization", serviceJwt);
+            _httpClient.DefaultRequestHeaders.Add("X-Service-Token", serviceJwt);
             _httpClient.DefaultRequestHeaders.Add("X-Request-ID", Guid.NewGuid().ToString());
 
             var response = await _httpClient.GetAsync(url, cancellationToken);

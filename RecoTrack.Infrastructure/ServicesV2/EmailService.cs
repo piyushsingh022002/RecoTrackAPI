@@ -1,8 +1,4 @@
 ﻿using RecoTrack.Application.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,36 +12,27 @@ namespace RecoTrack.Infrastructure.ServicesV2
     public class EmailService : IEmailService
     {
         private readonly IInternalHttpClient _httpClient;
-        private readonly IServiceTokenGenerator _serviceTokenGenerator;
-        private const string EmailServiceUrl = "https://emailservice.example.com/api/send";
+        private const string EmailServiceUrl = "https://recotrack-emailservice-java-program.onrender.com/api/email/send/critical";
 
-        public EmailService(IInternalHttpClient httpClient, IServiceTokenGenerator serviceTokenGenerator)
+        public EmailService(IInternalHttpClient httpClient)
         {
             _httpClient = httpClient;
-            _serviceTokenGenerator = serviceTokenGenerator;
         }
 
         public async Task SendEmailAsync(string userJwt, string emailAction, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(emailAction))
+            if (string.IsNullOrWhiteSpace(userJwt) || string.IsNullOrWhiteSpace(emailAction))
             {
                 return;
             }
 
-            var serviceToken = _serviceTokenGenerator.GenerateToken();
-            var request = new
-            {
-                ServiceToken = serviceToken,
-                UserJwtToken = userJwt,
-                Email_Action = emailAction
-            };
+            var request = new { actionId = emailAction };
 
             await _httpClient.PostAsync<object, object>(
                 EmailServiceUrl,
                 request,
                 userJwt,
-                serviceToken,
-                cancellationToken);
+                cancellationToken: cancellationToken);
         }
     }
 }
