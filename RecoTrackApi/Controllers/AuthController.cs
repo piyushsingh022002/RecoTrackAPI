@@ -1,9 +1,11 @@
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RecoTrackApi.Models;
 using RecoTrackApi.Repositories;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Services;
+using RecoTrackApi.Jobs;
 using System.Security.Claims;
 
 namespace RecoTrackApi.Controllers
@@ -16,17 +18,20 @@ namespace RecoTrackApi.Controllers
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
         private readonly ILogRepository _logRepository;
+        private readonly IBackgroundJobClient _backgroundJob;
 
         public AuthController(
             IUserRepository userRepository,
             IAuthService authService,
             ILogger<AuthController> logger,
-            ILogRepository logRepository)
+            ILogRepository logRepository,
+            IBackgroundJobClient backgroundJob)
         {
             _userRepository = userRepository;
             _authService = authService;
             _logger = logger;
             _logRepository = logRepository;
+            _backgroundJob = backgroundJob;
         }
 
         [Authorize]
@@ -52,7 +57,11 @@ namespace RecoTrackApi.Controllers
             if (!result.Success)
                 return BadRequest(new { Message = result.ErrorMessage });
 
-            //return Ok(new { Message = "User registered successfully" });
+            if (!string.IsNullOrWhiteSpace(result.Token))
+            {
+                _backgroundJob.Enqueue<WelcomeEmailJob>(job => job.SendEmailAsync(result.Token, "WELCOME"));
+            }
+
             return Ok(result);
 
         }

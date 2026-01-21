@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -8,6 +9,8 @@ using RecoTrackApi.Services;
 using RecoTrackApi.Models;
 using RecoTrackApi.Repositories;
 using RecoTrackApi.Repositories.Interfaces;
+using RecoTrack.Infrastructure.ServicesV2;
+
 namespace RecoTrackApi.ControllersTest
 {
     public class AuthControllerTest
@@ -16,31 +19,45 @@ namespace RecoTrackApi.ControllersTest
         private readonly Mock<IAuthService> _authServiceMock = new();
         private readonly Mock<ILogger<AuthController>> _loggerMock = new();
         private readonly Mock<ILogRepository> _logRepoMock = new();
+        private readonly Mock<IBackgroundJobClient> _backgroundJobMock = new();
         private readonly AuthController _controller;
 
         public AuthControllerTest()
         {
-            _controller = new AuthController(_userRepoMock.Object, _authServiceMock.Object, _loggerMock.Object, _logRepoMock.Object);
+            _controller = new AuthController(
+                _userRepoMock.Object,
+                _authServiceMock.Object,
+                _loggerMock.Object,
+                _logRepoMock.Object,
+                _backgroundJobMock.Object);
         }
 
-        [Fact(Skip = "Fixing in progress")]
+        [Fact]
         public async Task Login_ReturnsUnauthorized_WhenLoginFails()
         {
             var loginRequest = new LoginRequest { Email = "test@example.com", Password = "wrong" };
             _authServiceMock.Setup(s => s.LoginAsync(loginRequest)).ReturnsAsync(LoginResult.Fail("Invalid credentials"));
             var result = await _controller.Login(loginRequest);
             var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
-            Assert.Equal("Invalid credentials", unauthorized.Value);
+            Assert.Equal("Invalid credentials", ExtractMessage(unauthorized.Value));
         }
 
-        [Fact(Skip = "Fixing in progress")]
+        [Fact]
         public async Task Register_ReturnsBadRequest_WhenRegisterFails()
         {
             var registerRequest = new RegisterRequest { Email = "test@example.com", Password = "pw", ConfirmPassword = "pw" };
             _authServiceMock.Setup(s => s.RegisterAsync(registerRequest)).ReturnsAsync(RegisterResult.Fail("Email exists"));
             var result = await _controller.Register(registerRequest);
             var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-            Assert.Equal("Email exists", badRequest.Value);
+            Assert.Equal("Email exists", ExtractMessage(badRequest.Value));
+        }
+
+        private static string? ExtractMessage(object? payload)
+        {
+            if (payload == null)
+                return null;
+
+            return payload.GetType().GetProperty("Message")?.GetValue(payload) as string;
         }
     }
 }
