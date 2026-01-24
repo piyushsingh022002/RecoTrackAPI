@@ -23,5 +23,12 @@ namespace RecoTrackApi.Repositories
         {
             await _users.InsertOneAsync(user);
         }
+
+        public async Task UpdatePasswordHashAsync(string email, string passwordHash)
+        {
+            var filter = Builders<User>.Filter.Eq(u => u.Email, email);
+            var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash);
+            await _users.UpdateOneAsync(filter, update);
+        }
     }
 }

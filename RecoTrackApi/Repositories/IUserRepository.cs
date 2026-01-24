@@ -6,5 +6,6 @@ namespace RecoTrackApi.Repositories
     {
         Task<User> GetByEmailAsync(string email);
         Task CreateUserAsync(User user);
+        Task UpdatePasswordHashAsync(string email, string passwordHash);
     }
 }
