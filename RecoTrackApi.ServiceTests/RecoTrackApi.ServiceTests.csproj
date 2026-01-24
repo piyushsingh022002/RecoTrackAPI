@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\RecoTrack.Application\RecoTrack.Application.csproj" />
     <ProjectReference Include="..\RecoTrack.Infrastructure\RecoTrack.Infrastructure.csproj" />
+    <ProjectReference Include="..\RecoTrackApi\RecoTrackApi.csproj" />
   </ItemGroup>
 
   <ItemGroup>

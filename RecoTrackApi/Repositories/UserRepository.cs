@@ -14,7 +14,7 @@ namespace RecoTrackApi.Repositories
             _users = database.GetCollection<User>("Users");
         }
 
-        public async Task<User> GetByEmailAsync(string email)
+        public async Task<User?> GetByEmailAsync(string email)
         {
             return await _users.Find(u => u.Email == email).FirstOrDefaultAsync();
         }
@@ -22,6 +22,13 @@ namespace RecoTrackApi.Repositories
         public async Task CreateUserAsync(User user)
         {
             await _users.InsertOneAsync(user);
+        }
+
+        public async Task UpdatePasswordHashAsync(string email, string passwordHash)
+        {
+            var filter = Builders<User>.Filter.Eq(u => u.Email, email);
+            var update = Builders<User>.Update.Set(u => u.PasswordHash, passwordHash);
+            await _users.UpdateOneAsync(filter, update);
         }
     }
 }

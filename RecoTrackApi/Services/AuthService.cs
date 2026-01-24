@@ -2,9 +2,13 @@ using Microsoft.IdentityModel.Tokens;
 using RecoTrackApi.Controllers;
 using RecoTrackApi.Models;
 using RecoTrackApi.Repositories;
+using RecoTrackApi.Repositories.Interfaces;
+using RecoTrack.Infrastructure.ServicesV2;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Security.Cryptography;
+using System.Threading;
 
 namespace RecoTrackApi.Services
 {
@@ -14,21 +18,27 @@ namespace RecoTrackApi.Services
         private readonly string _issuer;
         private readonly string _audience;
         private readonly IUserRepository _userRepository;
+        private readonly IPasswordResetRepository _passwordResetRepository;
+        private readonly IEmailService _emailService;
         private readonly ILogger<AuthService> _logger;
 
-        public AuthService(IConfiguration configuration, IUserRepository userRepository, ILogger<AuthService> logger)
+        public AuthService(IConfiguration configuration,
+            IUserRepository userRepository,
+            IPasswordResetRepository passwordResetRepository,
+            IEmailService emailService,
+            ILogger<AuthService> logger)
         {
             _jwtKey = configuration["JwtSettings:SecretKey"]!;
-            // Read issuer and audience from configuration; fall back to existing literals if not present
             _issuer = configuration["JwtSettings:Issuer"] ?? "RecoTrackAPI - Service";
             _audience = configuration["JwtSettings:Audience"] ?? "RecoTrackWeb - Client";
 
-            //Console.WriteLine("GENERATOR JWT KEY: " + _jwtKey);
             _userRepository = userRepository;
+            _passwordResetRepository = passwordResetRepository;
+            _emailService = emailService;
             _logger = logger;
         }
 
-        public async Task<RegisterResult> RegisterAsync (RegisterRequest request)
+        public async Task<RegisterResult> RegisterAsync(RegisterRequest request)
         {
             if (request.Password != request.ConfirmPassword)
                 return RegisterResult.Fail("Passwords do not match");
@@ -74,6 +84,107 @@ namespace RecoTrackApi.Services
             return LoginResult.SuccessResult(token, user.Username, user.Email);
         }
 
+        public async Task<PasswordOtpResult> SendPasswordResetOtpAsync(string email, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ArgumentException("Email is required", nameof(email));
+
+            var user = await _userRepository.GetByEmailAsync(email);
+            if (user == null)
+                throw new InvalidOperationException("Email not found. Please register first.");
+
+            await _passwordResetRepository.DeactivateActiveOtpsAsync(email);
+
+            var otp = GenerateNumericOtp();
+            var entry = new PasswordResetEntry
+            {
+                Email = email,
+                Otp = otp,
+                Active = 1,
+                CreatedAtUtc = DateTime.UtcNow,
+                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(15)
+            };
+
+            await _passwordResetRepository.SaveAsync(entry);
+            await _emailService.SendOtpEmailAsync(email, otp, cancellationToken);
+
+            return new PasswordOtpResult
+            {
+                Message = "OTP generated and sent to email",
+                Otp = otp,
+                ExpiresAtUtc = entry.ExpiresAtUtc
+            };
+        }
+
+        public async Task<PasswordOtpVerificationResult> VerifyPasswordResetOtpAsync(string email, string otp, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ArgumentException("Email is required", nameof(email));
+
+            if (string.IsNullOrWhiteSpace(otp))
+                throw new ArgumentException("OTP is required", nameof(otp));
+
+            var entry = await _passwordResetRepository.GetActiveUnexpiredEntryAsync(email, otp);
+            if (entry == null)
+            {
+                return new PasswordOtpVerificationResult
+                {
+                    Success = false,
+                    Message = "Invalid or inactive OTP."
+                };
+            }
+
+            if (entry.ExpiresAtUtc < DateTime.UtcNow)
+            {
+                return new PasswordOtpVerificationResult
+                {
+                    Success = false,
+                    Message = "OTP has expired."
+                };
+            }
+
+            var successCode = GenerateSuccessCode();
+            await _passwordResetRepository.SetSuccessCodeAsync(email, otp, successCode);
+
+            return new PasswordOtpVerificationResult
+            {
+                Success = true,
+                Message = "OTP verified successfully.",
+                SuccessCode = successCode
+            };
+        }
+
+        public async Task<LoginResult> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.SuccessCode))
+                return LoginResult.Fail("Email and success code are required.");
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword) || string.IsNullOrWhiteSpace(request.ConfirmPassword))
+                return LoginResult.Fail("New password and confirmation are required.");
+
+            if (request.NewPassword != request.ConfirmPassword)
+                return LoginResult.Fail("Passwords do not match.");
+
+            var entry = await _passwordResetRepository.GetBySuccessCodeAsync(request.Email, request.SuccessCode);
+            if (entry == null || entry.ExpiresAtUtc < DateTime.UtcNow)
+                return LoginResult.Fail("Invalid or expired success code.");
+
+            var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+                return LoginResult.Fail("User not found.");
+
+            var newHash = HashPassword(request.NewPassword);
+            await _userRepository.UpdatePasswordHashAsync(request.Email, newHash);
+            user.PasswordHash = newHash;
+
+            await _passwordResetRepository.DeactivateActiveOtpsAsync(request.Email);
+
+            var token = GenerateJwtToken(user);
+            return LoginResult.SuccessResult(token, user.Username, user.Email);
+        }
 
         public string HashPassword(string password)
         {
@@ -106,6 +217,18 @@ namespace RecoTrackApi.Services
                 );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private static string GenerateNumericOtp(int length = 6)
+        {
+            var maxValue = (int)Math.Pow(10, length);
+            var number = RandomNumberGenerator.GetInt32(0, maxValue);
+            return number.ToString($"D{length}");
+        }
+
+        private static string GenerateSuccessCode()
+        {
+            return Guid.NewGuid().ToString("N");
         }
     }
 }

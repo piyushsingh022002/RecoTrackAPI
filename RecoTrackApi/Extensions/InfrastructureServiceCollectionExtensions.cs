@@ -26,6 +26,7 @@ namespace RecoTrackApi.Extensions
             services.AddSingleton<IMongoDbService, MongoDbService>();
             services.AddScoped<IActivityRepository, ActivityRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
             services.AddScoped<INoteRepository, NoteRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddSingleton<RecoTrackApi.Repositories.Interfaces.ILogRepository, RecoTrackApi.Repositories.LogRepository>();

@@ -7,5 +7,6 @@ namespace RecoTrack.Shared.Settings
         public string LogsCollectionName { get; set; } = "logs";
 
         public string EmailAuditCollectionName { get; set; } = "email_audit";
+        public string PasswordResetCollectionName { get; set; } = "password_resets";
     }
 }
