@@ -13,8 +13,8 @@ public static class SwaggerServiceExtensions
         {
             options.SwaggerDoc("v1", new OpenApiInfo
             {
-                Title = "StudentRoutineTracker API",
-                Version = "v1"
+                Title = "RecoTrack APIs - Dev",
+                Version = "v1.0.1"
             });
 
             // JWT Bearer Authentication
