@@ -16,13 +16,15 @@ namespace RecoTrack.ServiceTests
 {
     public class AuthServiceTests
     {
+        private const string JwtSecretKey = "abcdefghijklmnopqrstuvwxyz123456";
+
         private readonly IConfiguration _configuration;
 
         public AuthServiceTests()
         {
             var settings = new Dictionary<string, string>
             {
-                ["JwtSettings:SecretKey"] = "test-jwt-secret-key",
+                ["JwtSettings:SecretKey"] = JwtSecretKey,
                 ["JwtSettings:Issuer"] = "TestIssuer",
                 ["JwtSettings:Audience"] = "TestAudience"
             };

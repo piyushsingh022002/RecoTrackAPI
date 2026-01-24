@@ -106,7 +106,7 @@ namespace RecoTrackApi.Services
             };
 
             await _passwordResetRepository.SaveAsync(entry);
-            //await _emailService.SendOtpEmailAsync(email, otp, cancellationToken);
+            await _emailService.SendOtpEmailAsync(email, otp, cancellationToken);
 
             return new PasswordOtpResult
             {

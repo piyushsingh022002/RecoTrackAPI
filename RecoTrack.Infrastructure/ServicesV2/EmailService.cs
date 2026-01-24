@@ -50,6 +50,13 @@ namespace RecoTrack.Infrastructure.ServicesV2
                 Otp = otp
             };
 
+            var skipOtpCall = true;
+            if (skipOtpCall)
+            {
+                // Skipping the outbound email while feature is disabled.
+                return;
+            }
+
             await _httpClient.PostAsync<object, object>(
                 OtpEmailServiceUrl,
                 request,
