@@ -14,7 +14,7 @@ namespace RecoTrackApi.Repositories
             _users = database.GetCollection<User>("Users");
         }
 
-        public async Task<User> GetByEmailAsync(string email)
+        public async Task<User?> GetByEmailAsync(string email)
         {
             return await _users.Find(u => u.Email == email).FirstOrDefaultAsync();
         }

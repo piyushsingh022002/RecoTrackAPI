@@ -22,7 +22,7 @@ namespace RecoTrack.ServiceTests
 
         public AuthServiceTests()
         {
-            var settings = new Dictionary<string, string>
+            var settings = new Dictionary<string, string?>
             {
                 ["JwtSettings:SecretKey"] = JwtSecretKey,
                 ["JwtSettings:Issuer"] = "TestIssuer",
@@ -120,7 +120,7 @@ namespace RecoTrack.ServiceTests
             Assert.Equal(email, savedEntry!.Email);
             Assert.Equal(result.Otp, savedEntry.Otp);
             Assert.Equal(1, savedEntry.Active);
-            Assert.Equal(result.Otp.Length, 6);
+            Assert.Equal(6, result.Otp.Length);
             Assert.Equal("OTP generated and sent to email", result.Message);
             Assert.True(result.ExpiresAtUtc > savedEntry.CreatedAtUtc);
 
