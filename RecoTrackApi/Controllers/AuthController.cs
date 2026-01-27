@@ -100,7 +100,6 @@ namespace RecoTrackApi.Controllers
                 return Ok(new
                 {
                     result.Message,
-                    result.Otp,
                     result.ExpiresAtUtc
                 });
             }
