@@ -49,16 +49,16 @@ namespace RecoTrack.Infrastructure.ServicesV2
 
             var request = new
             {
-                Email = toEmail,
-                Otp = otp,
-                ActionType = "FORGOT_PASSWORD"
+                email = toEmail,
+                otp,
+                actionType = "FORGOT_PASSWORD"
             };
 
-            var serviceToken = _serviceTokenGenerator.GenerateToken();
             await _httpClient.PostAsync<object, object>(
                 _otpEmailServiceUrl,
                 request,
-                serviceToken,
+                userJwt: null,
+                serviceJwt: _serviceTokenGenerator.GenerateToken(),
                 cancellationToken: cancellationToken);
         }
     }

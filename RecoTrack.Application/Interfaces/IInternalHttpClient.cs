@@ -12,7 +12,7 @@ namespace RecoTrack.Application.Interfaces
         Task<TResponse> PostAsync<TRequest, TResponse>(
             string url,
             TRequest body,
-            string userJwt,
+            string? userJwt = null,
             string? serviceJwt = null,
             CancellationToken cancellationToken = default);
 

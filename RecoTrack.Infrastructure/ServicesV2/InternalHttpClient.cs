@@ -24,7 +24,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
         public async Task<TResponse> PostAsync<TRequest, TResponse>(
             string url,
             TRequest body,
-            string userJwt,
+            string? userJwt = null,
             string? serviceJwt = null,
             CancellationToken cancellationToken = default)
         {
@@ -36,7 +36,12 @@ namespace RecoTrack.Infrastructure.ServicesV2
 
             // Add headers
             _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
+            if (!string.IsNullOrWhiteSpace(userJwt))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
+            }
+            _httpClient.DefaultRequestHeaders.Accept.Clear();
+            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
             _httpClient.DefaultRequestHeaders.Add("X-Service-Token", resolvedServiceJwt);
             _httpClient.DefaultRequestHeaders.Add("X-Request-ID", Guid.NewGuid().ToString());
 
@@ -45,9 +50,14 @@ namespace RecoTrack.Infrastructure.ServicesV2
             response.EnsureSuccessStatusCode();
 
             // Deserialize response
-            var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            var deserialized = await JsonSerializer.DeserializeAsync<TResponse>(responseStream, cancellationToken: cancellationToken);
-            return deserialized ?? throw new InvalidOperationException("Received an empty response from the HTTP call.");
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(responseContent))
+            {
+                return default!;
+            }
+
+            var deserialized = JsonSerializer.Deserialize<TResponse>(responseContent);
+            return deserialized ?? default!;
         }
 
         public async Task<TResponse> GetAsync<TResponse>(
