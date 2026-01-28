@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RecoTrack.Infrastructure.ServicesV2;
 using RecoTrackApi.Models;
 using RecoTrackApi.Repositories;
 using RecoTrackApi.Repositories.Interfaces;
@@ -37,14 +36,12 @@ namespace RecoTrack.ServiceTests
         private AuthService CreateSubject(
             Mock<IUserRepository> userRepository,
             Mock<IPasswordResetRepository> passwordResetRepository,
-            Mock<IEmailService> emailService,
             Mock<ILogger<AuthService>> logger)
         {
             return new AuthService(
                 _configuration,
                 userRepository.Object,
                 passwordResetRepository.Object,
-                emailService.Object,
                 logger.Object);
         }
 
@@ -55,9 +52,8 @@ namespace RecoTrack.ServiceTests
         {
             var userRepo = new Mock<IUserRepository>();
             var passwordResetRepo = new Mock<IPasswordResetRepository>();
-            var emailService = new Mock<IEmailService>();
             var logger = new Mock<ILogger<AuthService>>();
-            var service = CreateSubject(userRepo, passwordResetRepo, emailService, logger);
+            var service = CreateSubject(userRepo, passwordResetRepo, logger);
 
             await Assert.ThrowsAsync<ArgumentException>(() => service.SendPasswordResetOtpAsync(email));
         }
@@ -70,15 +66,14 @@ namespace RecoTrack.ServiceTests
                 .ReturnsAsync((User?)null);
 
             var passwordResetRepo = new Mock<IPasswordResetRepository>();
-            var emailService = new Mock<IEmailService>();
             var logger = new Mock<ILogger<AuthService>>();
-            var service = CreateSubject(userRepo, passwordResetRepo, emailService, logger);
+            var service = CreateSubject(userRepo, passwordResetRepo, logger);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => service.SendPasswordResetOtpAsync("missing@example.com"));
         }
 
         [Fact]
-        public async Task SendPasswordResetOtpAsync_GeneratesOtpAndSendsEmail_WhenUserExists()
+        public async Task SendPasswordResetOtpAsync_GeneratesOtpAndSavesEntry_WhenUserExists()
         {
             const string email = "test@example.com";
 
@@ -106,13 +101,8 @@ namespace RecoTrack.ServiceTests
                 .Setup(x => x.DeactivateActiveOtpsAsync(email))
                 .Returns(Task.CompletedTask);
 
-            var emailService = new Mock<IEmailService>();
-            emailService
-                .Setup(x => x.SendOtpEmailAsync(email, It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
-
             var logger = new Mock<ILogger<AuthService>>();
-            var service = CreateSubject(userRepo, passwordResetRepo, emailService, logger);
+            var service = CreateSubject(userRepo, passwordResetRepo, logger);
 
             var result = await service.SendPasswordResetOtpAsync(email);
 
@@ -126,7 +116,6 @@ namespace RecoTrack.ServiceTests
 
             passwordResetRepo.Verify(x => x.DeactivateActiveOtpsAsync(email), Times.Once);
             passwordResetRepo.Verify(x => x.SaveAsync(It.Is<PasswordResetEntry>(entry => entry.Email == email)), Times.Once);
-            emailService.Verify(x => x.SendOtpEmailAsync(email, result.Otp, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Theory]
@@ -136,9 +125,8 @@ namespace RecoTrack.ServiceTests
         {
             var userRepo = new Mock<IUserRepository>();
             var passwordResetRepo = new Mock<IPasswordResetRepository>();
-            var emailService = new Mock<IEmailService>();
             var logger = new Mock<ILogger<AuthService>>();
-            var service = CreateSubject(userRepo, passwordResetRepo, emailService, logger);
+            var service = CreateSubject(userRepo, passwordResetRepo, logger);
 
             await Assert.ThrowsAsync<ArgumentException>(() => service.VerifyPasswordResetOtpAsync(email, otp));
         }
@@ -154,9 +142,8 @@ namespace RecoTrack.ServiceTests
             passwordResetRepo.Setup(x => x.GetActiveUnexpiredEntryAsync(email, otp))
                 .ReturnsAsync((PasswordResetEntry?)null);
 
-            var emailService = new Mock<IEmailService>();
             var logger = new Mock<ILogger<AuthService>>();
-            var service = CreateSubject(userRepo, passwordResetRepo, emailService, logger);
+            var service = CreateSubject(userRepo, passwordResetRepo, logger);
 
             var result = await service.VerifyPasswordResetOtpAsync(email, otp);
 
@@ -184,9 +171,8 @@ namespace RecoTrack.ServiceTests
             var passwordResetRepo = new Mock<IPasswordResetRepository>();
             passwordResetRepo.Setup(x => x.GetActiveUnexpiredEntryAsync(email, otp)).ReturnsAsync(entry);
 
-            var emailService = new Mock<IEmailService>();
             var logger = new Mock<ILogger<AuthService>>();
-            var service = CreateSubject(userRepo, passwordResetRepo, emailService, logger);
+            var service = CreateSubject(userRepo, passwordResetRepo, logger);
 
             var result = await service.VerifyPasswordResetOtpAsync(email, otp);
 
@@ -217,9 +203,8 @@ namespace RecoTrack.ServiceTests
                 .Setup(x => x.SetSuccessCodeAsync(email, otp, It.IsAny<string>()))
                 .Returns(Task.CompletedTask);
 
-            var emailService = new Mock<IEmailService>();
             var logger = new Mock<ILogger<AuthService>>();
-            var service = CreateSubject(userRepo, passwordResetRepo, emailService, logger);
+            var service = CreateSubject(userRepo, passwordResetRepo, logger);
 
             var result = await service.VerifyPasswordResetOtpAsync(email, otp);
 
@@ -239,9 +224,8 @@ namespace RecoTrack.ServiceTests
             passwordResetRepo.Setup(x => x.GetBySuccessCodeAsync(email, It.IsAny<string>()))
                 .ReturnsAsync((PasswordResetEntry?)null);
 
-            var emailService = new Mock<IEmailService>();
             var logger = new Mock<ILogger<AuthService>>();
-            var service = CreateSubject(userRepo, passwordResetRepo, emailService, logger);
+            var service = CreateSubject(userRepo, passwordResetRepo, logger);
 
             var request = new ResetPasswordRequest
             {
@@ -288,9 +272,8 @@ namespace RecoTrack.ServiceTests
             passwordResetRepo.Setup(x => x.GetBySuccessCodeAsync(email, successCode)).ReturnsAsync(entry);
             passwordResetRepo.Setup(x => x.DeactivateActiveOtpsAsync(email)).Returns(Task.CompletedTask);
 
-            var emailService = new Mock<IEmailService>();
             var logger = new Mock<ILogger<AuthService>>();
-            var service = CreateSubject(userRepo, passwordResetRepo, emailService, logger);
+            var service = CreateSubject(userRepo, passwordResetRepo, logger);
 
             var request = new ResetPasswordRequest
             {
