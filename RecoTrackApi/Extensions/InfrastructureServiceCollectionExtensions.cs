@@ -41,8 +41,6 @@ namespace RecoTrackApi.Extensions
             services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
             services.AddScoped<IEmailSender, MailKitEmailSender>();
 
-            services.Configure<EmailServiceSettings>(configuration.GetSection("EmailService"));
-
             // Service token settings
             services.Configure<ServiceJwtSettings>(
                 configuration.GetSection("ServiceJwtSettings"));
