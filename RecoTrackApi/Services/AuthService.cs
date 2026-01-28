@@ -1,9 +1,10 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using RecoTrackApi.Controllers;
 using RecoTrackApi.Models;
 using RecoTrackApi.Repositories;
 using RecoTrackApi.Repositories.Interfaces;
-using RecoTrack.Infrastructure.ServicesV2;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -19,13 +20,11 @@ namespace RecoTrackApi.Services
         private readonly string _audience;
         private readonly IUserRepository _userRepository;
         private readonly IPasswordResetRepository _passwordResetRepository;
-        private readonly IEmailService _emailService;
         private readonly ILogger<AuthService> _logger;
 
         public AuthService(IConfiguration configuration,
             IUserRepository userRepository,
             IPasswordResetRepository passwordResetRepository,
-            IEmailService emailService,
             ILogger<AuthService> logger)
         {
             _jwtKey = configuration["JwtSettings:SecretKey"]!;
@@ -34,7 +33,6 @@ namespace RecoTrackApi.Services
 
             _userRepository = userRepository;
             _passwordResetRepository = passwordResetRepository;
-            _emailService = emailService;
             _logger = logger;
         }
 
@@ -106,7 +104,6 @@ namespace RecoTrackApi.Services
             };
 
             await _passwordResetRepository.SaveAsync(entry);
-            await _emailService.SendOtpEmailAsync(email, otp, cancellationToken);
 
             return new PasswordOtpResult
             {

@@ -97,6 +97,12 @@ namespace RecoTrackApi.Controllers
             try
             {
                 var result = await _authService.SendPasswordResetOtpAsync(request.Email);
+
+                if (!string.IsNullOrWhiteSpace(result.Otp))
+                {
+                    _backgroundJob.Enqueue<PasswordResetOtpEmailJob>(job => job.SendOtpEmailAsync(request.Email, result.Otp));
+                }
+
                 return Ok(new
                 {
                     result.Message,
