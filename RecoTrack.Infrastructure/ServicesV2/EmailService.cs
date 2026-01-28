@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using RecoTrack.Application.Interfaces;
+﻿using RecoTrack.Application.Interfaces;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,20 +14,18 @@ namespace RecoTrack.Infrastructure.ServicesV2
     {
         private readonly IInternalHttpClient _httpClient;
         private readonly IServiceTokenGenerator _serviceTokenGenerator;
-        private readonly string _emailServiceUrl;
-        private readonly string _otpEmailServiceUrl;
+        private const string EmailServiceUrl = "https://recotrack-emailservice-java-program.com/api/email/send/critical";
+        private const string OtpEmailServiceUrl = "https://recotrack-emailservice-java-program.onrender.com/api/email/send/forgot-password/otp";
 
-        public EmailService(IInternalHttpClient httpClient, IServiceTokenGenerator serviceTokenGenerator, Microsoft.Extensions.Options.IOptions<EmailServiceSettings> emailOptions)
+        public EmailService(IInternalHttpClient httpClient, IServiceTokenGenerator serviceTokenGenerator)
         {
             _httpClient = httpClient;
             _serviceTokenGenerator = serviceTokenGenerator;
-            _emailServiceUrl = emailOptions.Value.EmailServiceUrl;
-            _otpEmailServiceUrl = emailOptions.Value.OtpEmailServiceUrl;
         }
 
         public async Task SendEmailAsync(string userJwt, string emailAction, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(userJwt) || string.IsNullOrWhiteSpace(emailAction) || string.IsNullOrWhiteSpace(_emailServiceUrl))
+            if (string.IsNullOrWhiteSpace(userJwt) || string.IsNullOrWhiteSpace(emailAction))
             {
                 return;
             }
@@ -36,7 +33,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
             var request = new { actionId = emailAction };
 
             await _httpClient.PostAsync<object, object>(
-                _emailServiceUrl,
+                EmailServiceUrl,
                 request,
                 userJwt,
                 cancellationToken: cancellationToken);
@@ -44,7 +41,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
 
         public async Task SendOtpEmailAsync(string toEmail, string otp, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(toEmail) || string.IsNullOrWhiteSpace(otp) || string.IsNullOrWhiteSpace(_otpEmailServiceUrl))
+            if (string.IsNullOrWhiteSpace(toEmail) || string.IsNullOrWhiteSpace(otp))
                 return;
 
             var request = new
@@ -55,7 +52,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
             };
 
             await _httpClient.PostAsync<object, object>(
-                _otpEmailServiceUrl,
+                OtpEmailServiceUrl,
                 request,
                 userJwt: null,
                 serviceJwt: _serviceTokenGenerator.GenerateToken(),
