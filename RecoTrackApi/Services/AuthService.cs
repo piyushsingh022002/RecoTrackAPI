@@ -20,11 +20,13 @@ namespace RecoTrackApi.Services
         private readonly string _audience;
         private readonly IUserRepository _userRepository;
         private readonly IPasswordResetRepository _passwordResetRepository;
+        private readonly ISecurityQuestionRepository _securityQuestionRepository;
         private readonly ILogger<AuthService> _logger;
 
         public AuthService(IConfiguration configuration,
             IUserRepository userRepository,
             IPasswordResetRepository passwordResetRepository,
+            ISecurityQuestionRepository securityQuestionRepository,
             ILogger<AuthService> logger)
         {
             _jwtKey = configuration["JwtSettings:SecretKey"]!;
@@ -33,6 +35,7 @@ namespace RecoTrackApi.Services
 
             _userRepository = userRepository;
             _passwordResetRepository = passwordResetRepository;
+            _securityQuestionRepository = securityQuestionRepository;
             _logger = logger;
         }
 
@@ -41,18 +44,46 @@ namespace RecoTrackApi.Services
             if (request.Password != request.ConfirmPassword)
                 return RegisterResult.Fail("Passwords do not match");
 
-            var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+            if (string.IsNullOrWhiteSpace(request.FullName))
+                return RegisterResult.Fail("Full name is required");
+
+            if (string.IsNullOrWhiteSpace(request.Username))
+                return RegisterResult.Fail("Username is required");
+
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return RegisterResult.Fail("Email is required");
+
+            if (request.Dob == default)
+                return RegisterResult.Fail("Date of birth is required");
+
+            var email = request.Email.Trim();
+            var username = request.Username.Trim();
+
+            var existingUser = await _userRepository.GetByEmailAsync(email);
             if (existingUser != null)
                 return RegisterResult.Fail("Email is already registered");
 
             var user = new User
             {
-                Username = request.Username,
-                Email = request.Email,
+                Username = username,
+                FullName = request.FullName.Trim(),
+                Email = email,
+                PhoneNumber = request.PhoneNumber.Trim(),
+                Dob = request.Dob,
                 PasswordHash = HashPassword(request.Password)
             };
 
             await _userRepository.CreateUserAsync(user);
+
+            var securityEntry = new SecurityQuestionEntry
+            {
+                UserId = user.Id,
+                Question = string.IsNullOrWhiteSpace(request.SecurityQuestion) ? "SecretCode" : request.SecurityQuestion.Trim(),
+                AnswerHash = HashPassword(string.IsNullOrWhiteSpace(request.SecurityAnswer) ? "00000" : request.SecurityAnswer.Trim())
+            };
+
+            await _securityQuestionRepository.SaveAsync(securityEntry);
+
             var token = GenerateJwtToken(user);
 
             _logger.LogInformation("User registered with ID: {UserId}", user.Id);

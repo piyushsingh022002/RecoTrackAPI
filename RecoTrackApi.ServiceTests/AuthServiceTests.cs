@@ -36,12 +36,15 @@ namespace RecoTrack.ServiceTests
         private AuthService CreateSubject(
             Mock<IUserRepository> userRepository,
             Mock<IPasswordResetRepository> passwordResetRepository,
-            Mock<ILogger<AuthService>> logger)
+            Mock<ILogger<AuthService>> logger,
+            Mock<ISecurityQuestionRepository>? securityQuestionRepository = null)
         {
+            var securityRepo = securityQuestionRepository ?? new Mock<ISecurityQuestionRepository>();
             return new AuthService(
                 _configuration,
                 userRepository.Object,
                 passwordResetRepository.Object,
+                securityRepo.Object,
                 logger.Object);
         }
 
