@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 using RecoTrack.Application.Interfaces;
+using RecoTrack.Application.Services;
 using RecoTrack.Data.Repositories;
 using RecoTrack.Infrastructure.Services;
 using RecoTrack.Infrastructure.ServicesV2;
@@ -13,6 +14,7 @@ using RecoTrack.Shared.Settings;
 using RecoTrackApi.Repositories;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Services;
+using RecoTrack.Infrastructure.Extensions;
 
 namespace RecoTrackApi.Extensions
 {
@@ -26,12 +28,16 @@ namespace RecoTrackApi.Extensions
             services.AddSingleton<IMongoDbService, MongoDbService>();
             services.AddScoped<IActivityRepository, ActivityRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ISecurityQuestionRepository, SecurityQuestionRepository>();
             services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
             services.AddScoped<INoteRepository, NoteRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddSingleton<RecoTrackApi.Repositories.Interfaces.ILogRepository, RecoTrackApi.Repositories.LogRepository>();
             services.AddScoped<RecoTrack.Application.Interfaces.ILogRepository, RecoTrack.Infrastructure.Services.LogRepository>();
             services.AddScoped<IEmailAuditRepository, EmailAuditRepository>();
+
+            // Object storage
+            services.AddObjectStorageServices(configuration);
 
             // HttpClients
             services.AddHttpClient<IAutomatedPrReviewService, AutomatedPrReviewService>();

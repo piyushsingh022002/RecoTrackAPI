@@ -8,5 +8,6 @@ namespace RecoTrack.Shared.Settings
 
         public string EmailAuditCollectionName { get; set; } = "email_audit";
         public string PasswordResetCollectionName { get; set; } = "password_resets";
+        public string SecurityQuestionCollectionName { get; set; } = "security_questions";
     }
 }
