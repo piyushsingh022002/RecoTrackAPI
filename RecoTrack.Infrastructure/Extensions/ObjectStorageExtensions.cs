@@ -18,24 +18,48 @@ namespace RecoTrack.Infrastructure.Extensions
             services.AddSingleton<IAmazonS3>(sp =>
             {
                 var settings = sp.GetRequiredService<IOptions<ObjectStorageSettings>>().Value;
-                var config = new AmazonS3Config();
+                var s3Config = new AmazonS3Config();
 
-                if (!string.IsNullOrWhiteSpace(settings.EndpointUrl))
+                // Determine effective values by checking bound settings first, then configuration, then common environment variables.
+                string? effectiveEndpoint = !string.IsNullOrWhiteSpace(settings.EndpointUrl)
+                    ? settings.EndpointUrl
+                    : configuration["ObjectStorage:EndpointUrl"]
+                    ?? Environment.GetEnvironmentVariable("OBJECT_STORAGE_ENDPOINT")
+                    ?? Environment.GetEnvironmentVariable("S3_ENDPOINT")
+                    ?? Environment.GetEnvironmentVariable("S3_ENDPOINT_URL");
+
+                string? effectiveRegion = !string.IsNullOrWhiteSpace(settings.Region)
+                    ? settings.Region
+                    : configuration["ObjectStorage:Region"]
+                    ?? Environment.GetEnvironmentVariable("OBJECT_STORAGE_REGION")
+                    ?? Environment.GetEnvironmentVariable("AWS_REGION")
+                    ?? Environment.GetEnvironmentVariable("AWS_DEFAULT_REGION");
+
+                if (!string.IsNullOrWhiteSpace(effectiveEndpoint))
                 {
-                    config.ServiceURL = settings.EndpointUrl;
-                    config.ForcePathStyle = true;
+                    s3Config.ServiceURL = effectiveEndpoint;
+                    s3Config.ForcePathStyle = true;
                 }
-                else if (!string.IsNullOrWhiteSpace(settings.Region))
+                else if (!string.IsNullOrWhiteSpace(effectiveRegion))
                 {
-                    config.RegionEndpoint = RegionEndpoint.GetBySystemName(settings.Region);
-                    config.ForcePathStyle = settings.UsePathStyle;
+                    try
+                    {
+                        s3Config.RegionEndpoint = RegionEndpoint.GetBySystemName(effectiveRegion);
+                        s3Config.ForcePathStyle = settings.UsePathStyle;
+                    }
+                    catch
+                    {
+                        // If region value is invalid, fall back to default client creation below instead of throwing.
+                        return new AmazonS3Client();
+                    }
                 }
                 else
                 {
-                    throw new InvalidOperationException("Object storage configuration requires either a Region or an Endpoint URL.");
+                    // No explicit endpoint or region resolved. Create default client which will rely on the SDK's default discovery (env vars, shared config, IMDS).
+                    return new AmazonS3Client();
                 }
 
-                return new AmazonS3Client(config);
+                return new AmazonS3Client(s3Config);
             });
 
             services.AddScoped<IObjectStorageService, S3ObjectStorageService>();
