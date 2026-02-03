@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -34,19 +35,24 @@ namespace RecoTrack.Infrastructure.ServicesV2
             var json = JsonSerializer.Serialize(body);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            // Add headers
-            _httpClient.DefaultRequestHeaders.Clear();
+            // Build the request message and set headers per-request (do not mutate shared DefaultRequestHeaders)
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = content
+            };
+
             if (!string.IsNullOrWhiteSpace(userJwt))
             {
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
             }
-            _httpClient.DefaultRequestHeaders.Accept.Clear();
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-            _httpClient.DefaultRequestHeaders.Add("X-Service-Token", resolvedServiceJwt);
-            _httpClient.DefaultRequestHeaders.Add("X-Request-ID", Guid.NewGuid().ToString());
+
+            requestMessage.Headers.Accept.Clear();
+            requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+            requestMessage.Headers.Add("X-Service-Token", resolvedServiceJwt);
+            requestMessage.Headers.Add("X-Request-ID", Guid.NewGuid().ToString());
 
             // Send POST request
-            var response = await _httpClient.PostAsync(url, content, cancellationToken);
+            var response = await _httpClient.SendAsync(requestMessage, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             // Deserialize response
@@ -67,12 +73,12 @@ namespace RecoTrack.Infrastructure.ServicesV2
         {
             string serviceJwt = _serviceTokenGenerator.GenerateToken();
 
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
-            _httpClient.DefaultRequestHeaders.Add("X-Service-Token", serviceJwt);
-            _httpClient.DefaultRequestHeaders.Add("X-Request-ID", Guid.NewGuid().ToString());
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
+            requestMessage.Headers.Add("X-Service-Token", serviceJwt);
+            requestMessage.Headers.Add("X-Request-ID", Guid.NewGuid().ToString());
 
-            var response = await _httpClient.GetAsync(url, cancellationToken);
+            var response = await _httpClient.SendAsync(requestMessage, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
