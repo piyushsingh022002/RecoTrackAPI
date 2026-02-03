@@ -27,12 +27,12 @@ namespace RecoTrackApi.Jobs
             try
             {
                 await _emailService.SendEmailAsync(userJwt, actionId);
-                _logger.LogInformation("Queued welcome email for token ending with {LastChars}",
+                _logger.LogInformation("Queued welcome email for token ending with {LastChars} for welcome email",
                     userJwt.Length > 10 ? userJwt[^10..] : userJwt);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "WelcomeEmailJob failed to send email for token ending with {LastChars}",
+                _logger.LogError(ex, "WelcomeEmailJob failed to send email for token ending with {LastChars} for welcome email",
                     userJwt.Length > 10 ? userJwt[^10..] : userJwt);
                 throw;
             }
