@@ -103,7 +103,7 @@ namespace RecoTrackApi.Controllers
             return Ok(new AvatarUploadUrlResponse
             {
                 UploadUrl = uploadResult.UploadUrl,
-                PublicUrl = uploadResult.PublicUrl
+                PublicUrl = uploadResult.PublicUrl  
             });
         }
 
