@@ -1,4 +1,5 @@
 using Amazon;
+using Amazon.Runtime;
 using Amazon.Runtime.Internal.Util;
 using Amazon.S3;
 using Microsoft.Extensions.Configuration;
@@ -15,7 +16,7 @@ namespace RecoTrack.Infrastructure.Extensions
     {
         public static IServiceCollection AddObjectStorageServices(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<ObjectStorageSettings>(configuration.GetSection("ObjectStorage"));
+            services.Configure<ObjectStorageSettings>(configuration.GetSection("ObjectStorageSettings"));
 
             // Support Render env var names
             services.PostConfigure<ObjectStorageSettings>(settings =>
@@ -47,42 +48,40 @@ namespace RecoTrack.Infrastructure.Extensions
             services.AddSingleton<IAmazonS3>(sp =>
             {
                 var settings = sp.GetRequiredService<IOptions<ObjectStorageSettings>>().Value;
-                var s3Config = new AmazonS3Config();
 
-                var logger = sp.GetRequiredService<ILoggerFactory>()
-                   .CreateLogger("ObjectStorage");
-
-                logger.LogInformation(
-                    "ObjectStorage config resolved - Bucket={Bucket}, Region={Region}, EndpointSet={EndpointSet}",
-                    settings.BucketName,
-                    settings.Region,
-                    !string.IsNullOrWhiteSpace(settings.EndpointUrl)
-                );
-
-                // Use already resolved settings (post-configured)
-                if (!string.IsNullOrWhiteSpace(settings.EndpointUrl))
+                //Avoid new AmazonS3Client() without Region or ServiceURL.
+                if (string.IsNullOrWhiteSpace(settings.EndpointUrl) && string.IsNullOrWhiteSpace(settings.Region))
                 {
-                    s3Config.ServiceURL = settings.EndpointUrl;
-                    s3Config.ForcePathStyle = true;
-                }
-                else if (!string.IsNullOrWhiteSpace(settings.Region))
-                {
-                    try
-                    {
-                        s3Config.RegionEndpoint = RegionEndpoint.GetBySystemName(settings.Region);
-                        s3Config.ForcePathStyle = settings.UsePathStyle;
-                    }
-                    catch
-                    {
-                        return new AmazonS3Client();
-                    }
-                }
-                else
-                {
-                    return new AmazonS3Client();
+                    throw new InvalidOperationException(
+                        "ObjectStorage configuration invalid. Either EndpointUrl or Region must be provided.");
                 }
 
-                return new AmazonS3Client(s3Config);
+                var config = new AmazonS3Config
+                {
+                    ServiceURL = settings.EndpointUrl,
+                    ForcePathStyle = true
+                };
+
+                var credentials = new BasicAWSCredentials(
+                    settings.AccessKey,
+                    settings.SecretKey
+                    );
+
+                //var s3Config = new AmazonS3Config();
+
+                //if (!string.IsNullOrWhiteSpace(settings.EndpointUrl))
+                //{
+                //    s3Config.ServiceURL = settings.EndpointUrl;
+                //    s3Config.ForcePathStyle = true;
+                //}
+                //else
+                //{
+                //    s3Config.RegionEndpoint = RegionEndpoint.GetBySystemName(settings.Region);
+                //    s3Config.ForcePathStyle = settings.UsePathStyle;
+                //}
+
+                return new AmazonS3Client(credentials, config);
+
             });
 
             services.AddScoped<IObjectStorageService, S3ObjectStorageService>();

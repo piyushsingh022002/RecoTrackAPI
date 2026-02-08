@@ -1,7 +1,12 @@
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace RecoTrackApi.Models
+namespace RecoTrack.Application.Models.Notes
 {
     public class Note
     {
@@ -18,11 +23,20 @@ namespace RecoTrackApi.Models
         [BsonElement("content")]
         public string? Content { get; set; }
 
+        // Tags (user-defined)
         [BsonElement("tags")]
         public List<string> Tags { get; set; } = new();
 
+        // System labels (favorite, important, pinned)
+        [BsonElement("labels")]
+        public List<string> Labels { get; set; } = new();
+
         [BsonElement("mediaUrls")]
         public List<string> MediaUrls { get; set; } = new();
+
+        // Active | Archived | Deleted
+        [BsonElement("status")]
+        public string Status { get; set; } = "Active";
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -30,7 +44,18 @@ namespace RecoTrackApi.Models
         [BsonElement("updatedAt")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+        // Soft delete support
         [BsonElement("deletedAt")]
         public DateTime? DeletedAt { get; set; }
+
+        // Future-ready fields
+        [BsonElement("pinnedAt")]
+        public DateTime? PinnedAt { get; set; }
+
+        [BsonElement("reminderAt")]
+        public DateTime? ReminderAt { get; set; }
+
+        [BsonElement("isLocked")]
+        public bool IsLocked { get; set; } = false;
     }
 }

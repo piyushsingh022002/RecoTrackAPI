@@ -8,5 +8,9 @@ namespace RecoTrack.Shared.Settings
         public string? PublicBaseUrl { get; set; }
         public bool UsePathStyle { get; set; }
         public int UploadUrlExpiryMinutes { get; set; } = 15;
+
+        public string? AccessKey { get; set; } = null;
+
+        public string? SecretKey { get; set; } = null;
     }
 }

@@ -2,7 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using RecoTrackApi.DTOs;
 using RecoTrackApi.Repositories.Interfaces;
-using RecoTrackApi.Models;
+using RecoTrack.Application.Models.Notes;
 
 namespace RecoTrackApi.Repositories
 {

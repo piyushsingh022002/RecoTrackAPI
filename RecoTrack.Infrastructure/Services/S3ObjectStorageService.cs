@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using RecoTrack.Application.Interfaces;
 using RecoTrack.Application.Models;
 using RecoTrack.Shared.Settings;
+using static System.Net.WebRequestMethods;
 
 namespace RecoTrack.Infrastructure.Services
 {
@@ -43,11 +44,20 @@ namespace RecoTrack.Infrastructure.Services
                 ContentType = contentType
             };
 
+            try { 
             var uploadUrl = _s3Client.GetPreSignedURL(request);
             var publicUrl = BuildPublicUrl(objectKey);
+                var result = new ObjectStorageUploadResult(uploadUrl, publicUrl);
+                return Task.FromResult(result);
 
-            var result = new ObjectStorageUploadResult(uploadUrl, publicUrl);
-            return Task.FromResult(result);
+            }
+            catch(Exception e)
+            {
+                throw new ArgumentException("OTP is required", e);
+            }
+
+            
+           
         }
 
         public string GetPublicUrl(string objectKey) => BuildPublicUrl(objectKey);
