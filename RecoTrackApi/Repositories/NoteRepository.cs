@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
+using RecoTrack.Application.Models.Notes;
 using RecoTrackApi.DTOs;
 using RecoTrackApi.Models;
 using RecoTrackApi.Repositories.Interfaces;
@@ -35,22 +36,25 @@ namespace RecoTrackApi.Repositories
 
         public async Task<List<Note>> GetNotesByUserIdAsync(string userId)
         {
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+            //do not check userId here, repository should trust service
+            var filter = Builders<Note>.Filter.And(
+                Builders<Note>.Filter.Eq(n => n.UserId, userId),
+                Builders<Note>.Filter.Eq(n => n.DeletedAt, null));
 
             return await _notes
-                .Find(n => n.UserId == userId && n.DeletedAt == null)
+                .Find(filter)
                 .SortByDescending(n => n.CreatedAt)
                 .ToListAsync();
         }
 
         public async Task<List<Note>> GetDeletedNotesByUserIdAsync(string userId)
         {
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+            var filter = Builders<Note>.Filter.And(
+             Builders<Note>.Filter.Eq(n => n.UserId, userId),
+             Builders<Note>.Filter.Ne(n => n.DeletedAt, null));
 
             return await _notes
-                .Find(n => n.UserId == userId && n.DeletedAt != null)
+                .Find(filter)
                 .SortByDescending(n => n.DeletedAt)
                 .ThenByDescending(n => n.CreatedAt)
                 .ToListAsync();
@@ -58,23 +62,19 @@ namespace RecoTrackApi.Repositories
 
         public async Task<Note?> GetNoteByIdAsync(string id, string userId)
         {
-            if (string.IsNullOrWhiteSpace(id))
-                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
-
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+            var filter = Builders<Note>.Filter.And(
+        Builders<Note>.Filter.Eq(n => n.Id, id),
+        Builders<Note>.Filter.Eq(n => n.UserId, userId),
+        Builders<Note>.Filter.Eq(n => n.DeletedAt, null)
+    );
 
             return await _notes
-                .Find(n => n.Id == id && n.UserId == userId && n.DeletedAt == null)
+                .Find(filter)
                 .FirstOrDefaultAsync();
         }
 
         public async Task CreateNoteAsync(Note note)
         {
-            if (note == null)
-                throw new ArgumentNullException(nameof(note), "Note cannot be null.");
-
-            note.DeletedAt = null;
             await _notes.InsertOneAsync(note);
         }
 
@@ -83,27 +83,13 @@ namespace RecoTrackApi.Repositories
             if (note == null)
                 throw new ArgumentNullException(nameof(note));
 
-            if (string.IsNullOrWhiteSpace(note.Id) || string.IsNullOrWhiteSpace(note.UserId))
-                throw new ArgumentException("Note ID and User ID must be provided.");
-
-            note.UpdatedAt = DateTime.UtcNow;
-
-            var result = await _notes.ReplaceOneAsync(
-                n => n.Id == note.Id && n.UserId == note.UserId && n.DeletedAt == null,
-                note
-            );
+            var result = await _notes.ReplaceOneAsync(n => n.Id == note.Id && n.UserId == note.UserId && n.DeletedAt == null,note);
 
             return result.ModifiedCount > 0;
         }
 
         public async Task<bool> DeleteNoteAsync(string id, string userId)
         {
-            if (string.IsNullOrWhiteSpace(id))
-                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
-
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
-
             var update = Builders<Note>.Update
                 .Set(n => n.DeletedAt, DateTime.UtcNow)
                 .Set(n => n.UpdatedAt, DateTime.UtcNow);
@@ -118,12 +104,6 @@ namespace RecoTrackApi.Repositories
 
         public async Task<bool> RestoreNoteAsync(string id, string userId)
         {
-            if (string.IsNullOrWhiteSpace(id))
-                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
-
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
-
             var update = Builders<Note>.Update
                 .Set(n => n.DeletedAt, null)
                 .Set(n => n.UpdatedAt, DateTime.UtcNow);
@@ -211,6 +191,40 @@ namespace RecoTrackApi.Repositories
                 }
             }
             return streak;
+        }
+
+        public async Task<List<Note>> GetAllFavouriteNotesByUserIdAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("User ID is required.", nameof(userId));
+
+            var filter = Builders<Note>.Filter.And(
+                Builders<Note>.Filter.Eq(n => n.UserId, userId),
+                Builders<Note>.Filter.Eq(n => n.DeletedAt, null),
+                Builders<Note>.Filter.AnyEq(n => n.Labels, "Favourite")
+            );
+
+            return await _notes
+                .Find(filter)
+                .SortByDescending(n => n.UpdatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<Note>> GetAllImportantNotesByUserIdAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("User ID is required.", nameof(userId));
+
+            var filter = Builders<Note>.Filter.And(
+                Builders<Note>.Filter.Eq(n => n.UserId, userId),
+                Builders<Note>.Filter.Eq(n => n.DeletedAt, null),
+                Builders<Note>.Filter.AnyEq(n => n.Labels, "Important")
+            );
+
+            return await _notes
+                .Find(filter)
+                .SortByDescending(n => n.UpdatedAt)
+                .ToListAsync();
         }
     }
 }

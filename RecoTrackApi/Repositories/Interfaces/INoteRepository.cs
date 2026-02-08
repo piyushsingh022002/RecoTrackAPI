@@ -1,5 +1,5 @@
 using RecoTrackApi.DTOs;
-using RecoTrackApi.Models;
+using RecoTrack.Application.Models.Notes;
 
 namespace RecoTrackApi.Repositories.Interfaces
 {
@@ -15,5 +15,9 @@ namespace RecoTrackApi.Repositories.Interfaces
         Task<List<NoteActivityDto>> GetNoteActivityAsync(string userId, DateTime startDate, DateTime endDate);
         Task<List<Note>> GetNotesByDateAsync(string userId, DateTime date);
         Task<int> GetNoteStreakAsync(string userId);
+
+        Task<List<Note>> GetAllFavouriteNotesByUserIdAsync(string userId);
+        Task<List<Note>> GetAllImportantNotesByUserIdAsync(string userId);
+
     }
 }

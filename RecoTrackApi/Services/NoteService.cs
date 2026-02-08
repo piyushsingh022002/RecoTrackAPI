@@ -1,5 +1,5 @@
 using RecoTrackApi.DTOs;
-using RecoTrackApi.Models;
+using RecoTrack.Application.Models.Notes;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Services.Interfaces;
 
@@ -17,7 +17,7 @@ namespace RecoTrackApi.Services
         public async Task<List<Note>> GetNotesAsync(string userId)
         {
             if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+                throw new ArgumentException("User ID is required.", nameof(userId));
 
             return await _noteRepository.GetNotesByUserIdAsync(userId);
         }
@@ -33,10 +33,10 @@ namespace RecoTrackApi.Services
         public async Task<Note?> GetNoteByIdAsync(string id, string userId)
         {
             if (string.IsNullOrWhiteSpace(id))
-                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
+                throw new ArgumentException("Note ID is required.", nameof(id));
 
             if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+                throw new ArgumentException("User ID is required.", nameof(userId));
 
             return await _noteRepository.GetNoteByIdAsync(id, userId);
         }
@@ -44,67 +44,50 @@ namespace RecoTrackApi.Services
         public async Task CreateNoteAsync(Note note)
         {
             if (note == null)
-                throw new ArgumentNullException(nameof(note), "Note cannot be null.");
+                throw new ArgumentNullException(nameof(note));
 
             if (string.IsNullOrWhiteSpace(note.UserId))
                 throw new ArgumentException("User ID is required.", nameof(note.UserId));
 
             if (string.IsNullOrWhiteSpace(note.Title))
-                throw new ArgumentException("Note title is required.", nameof(note.Title));
+                throw new ArgumentException("Title is required.", nameof(note.Title));
 
             note.DeletedAt = null;
             await _noteRepository.CreateNoteAsync(note);
         }
 
-        public async Task<bool> UpdateNoteAsync(Note note, string userId)
+        public async Task<bool> UpdateNoteAsync(string noteId, UpdateNoteDto updateDto, string userId)
         {
-            if (note == null)
-                throw new ArgumentNullException(nameof(note));
+            if (string.IsNullOrWhiteSpace(noteId))
+                throw new ArgumentException("Note ID is required.", nameof(noteId));
 
             if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+                throw new ArgumentException("User ID is required.", nameof(userId));
 
-            if (string.IsNullOrWhiteSpace(note.Id))
-                throw new ArgumentException("Note ID cannot be null or empty.", nameof(note.Id));
-
-            var existing = await _noteRepository.GetNoteByIdAsync(note.Id, userId);
-            if (existing == null)
+            var existingNote = await _noteRepository.GetNoteByIdAsync(noteId, userId);
+            if (existingNote == null)
                 return false;
 
-            note.CreatedAt = existing.CreatedAt;
-            note.UserId = userId;
+            // Map only fields that can be updated
+            if (updateDto.Title != null) existingNote.Title = updateDto.Title.Trim();
+            if (updateDto.Content != null) existingNote.Content = updateDto.Content.Trim();
+            if (updateDto.Tags != null) existingNote.Tags = updateDto.Tags;
+            if (updateDto.Labels != null) existingNote.Labels = updateDto.Labels;
+            if (updateDto.MediaUrls != null) existingNote.MediaUrls = updateDto.MediaUrls;
+            if (updateDto.Status != null) existingNote.Status = updateDto.Status;
+            if (updateDto.IsLocked.HasValue) existingNote.IsLocked = updateDto.IsLocked.Value;
+            if (updateDto.ReminderAt.HasValue) existingNote.ReminderAt = updateDto.ReminderAt;
 
-            return await _noteRepository.UpdateNoteAsync(note);
-        }
-
-        public async Task<bool> UpdateNoteAsync(string id, NoteUpdateDto updateDto, string userId)
-        {
-            if (updateDto == null)
-                throw new ArgumentNullException(nameof(updateDto));
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
-            if (string.IsNullOrWhiteSpace(id))
-                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
-
-            var existing = await _noteRepository.GetNoteByIdAsync(id, userId);
-            if (existing == null)
-                return false;
-
-            existing.Title = updateDto.Title;
-            existing.Content = updateDto.Content;
-            existing.Tags = updateDto.Tags ?? new List<string>();
-            existing.MediaUrls = updateDto.MediaUrls ?? new List<string>();
-            existing.UpdatedAt = DateTime.UtcNow;
-
-            return await _noteRepository.UpdateNoteAsync(existing);
+            existingNote.UpdatedAt = DateTime.UtcNow;
+            return await _noteRepository.UpdateNoteAsync(existingNote);
         }
 
         public async Task<bool> DeleteNoteAsync(string id, string userId)
         {
             if (string.IsNullOrWhiteSpace(id))
-                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
+                throw new ArgumentException("Note ID is required.", nameof(id));
             if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+                throw new ArgumentException("User ID is required.", nameof(userId));
 
             return await _noteRepository.DeleteNoteAsync(id, userId);
         }
@@ -112,9 +95,9 @@ namespace RecoTrackApi.Services
         public async Task<bool> RestoreNoteAsync(string id, string userId)
         {
             if (string.IsNullOrWhiteSpace(id))
-                throw new ArgumentException("Note ID cannot be null or empty.", nameof(id));
+                throw new ArgumentException("Note ID is required.", nameof(id));
             if (string.IsNullOrWhiteSpace(userId))
-                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+                throw new ArgumentException("User ID is required.", nameof(userId));
 
             return await _noteRepository.RestoreNoteAsync(id, userId);
         }
@@ -135,5 +118,24 @@ namespace RecoTrackApi.Services
         {
             return await _noteRepository.GetNoteStreakAsync(userId);
         }
+
+        public async Task<List<Note>> GetAllFavouriteNotesAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("User ID is required.", nameof(userId));
+
+            return await _noteRepository.GetAllFavouriteNotesByUserIdAsync(userId);
+        }
+
+        public async Task<List<Note>> GetAllImportantNotesAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new ArgumentException("User ID is required.", nameof(userId));
+
+            return await _noteRepository.GetAllImportantNotesByUserIdAsync(userId);
+        }
+
+
+
     }
 }

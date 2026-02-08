@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RecoTrackApi.DTOs;
-using RecoTrackApi.Models;
+using RecoTrack.Application.Models.Notes;
 using RecoTrackApi.Services.Interfaces;
 using System.Security.Claims;
-using Serilog;
 
 namespace RecoTrackApi.Controllers
 {
@@ -38,21 +36,26 @@ namespace RecoTrackApi.Controllers
             var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
             {
-                _logger.LogWarning("Unauthorized access attempt at {Timestamp}", DateTime.UtcNow);
+                _logger.LogInformation("Unauthorized request to GetNotes");
                 return Unauthorized();
             }
 
-            _logger.LogInformation("User {UserId} requested all notes at {Timestamp}", userId, DateTime.UtcNow);
+            _logger.LogInformation("GetNotes requested by UserId {UserId}", userId);
 
             try
             {
                 var notes = await _noteService.GetNotesAsync(userId);
-                _logger.LogInformation("Returning {Count} notes for user {UserId}", notes.Count, userId);
+                _logger.LogDebug("GetNotes returned {Count} notes for UserId {UserId}", notes.Count, userId);
                 return Ok(notes);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in GetNotes for UserId {UserId}", userId);
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving notes for user {UserId} at {Timestamp}", userId, DateTime.UtcNow);
+                _logger.LogError(ex, "Unhandled error in GetNotes for UserId {UserId}", userId);
                 return StatusCode(500, "An unexpected error occurred.");
             }
         }
@@ -63,24 +66,25 @@ namespace RecoTrackApi.Controllers
             var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
             {
-                _logger.LogWarning("Unauthorized access attempt to deleted notes at {Timestamp}", DateTime.UtcNow);
+                _logger.LogInformation("Unauthorized request to GetDeletedNotes");
                 return Unauthorized();
             }
+            _logger.LogInformation("GetDeletedNotes requested by UserId {UserId}", userId);
 
             try
             {
                 var deletedNotes = await _noteService.GetDeletedNotesAsync(userId);
-                _logger.LogInformation("Returning {Count} deleted notes for user {UserId}", deletedNotes.Count, userId);
-
-                if(deletedNotes.Count == 0)
-                {
-                    return Ok("Deleted Notes are empty for now !!");
-                }
+                _logger.LogDebug("GetDeletedNotes returned {Count} notes for UserId {UserId}", deletedNotes.Count, userId);
                 return Ok(deletedNotes);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in GetDeletedNotes for UserId {UserId}", userId);
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while retrieving deleted notes for user {UserId}", userId);
+                _logger.LogError(ex, "Unhandled error in GetDeletedNotes for UserId {UserId}", userId);
                 return StatusCode(500, "An unexpected error occurred.");
             }
         }
@@ -90,43 +94,58 @@ namespace RecoTrackApi.Controllers
         {
             var userId = GetUserId();
 
-            if (userId is null) 
+            if (string.IsNullOrWhiteSpace(userId)) 
             {
-                _logger.LogInformation("UserId cannot be null}");
+                _logger.LogInformation("Unauthorized request to GetNote");
                 return Unauthorized();
             }
 
-            _logger.LogInformation("User {UserId} requested note {NoteId} at {Timestamp}", userId, id, DateTime.UtcNow);
-            var note = await _noteService.GetNoteByIdAsync(id, userId);
-            if (note is null)
+            _logger.LogInformation("GetNote requested. UserId {UserId}, NoteId {NoteId}",userId, id);
+            try
             {
-                _logger.LogWarning("Note {NoteId} not found for user {UserId}", id, userId);
-                return NotFound();
+
+                var note = await _noteService.GetNoteByIdAsync(id, userId);
+
+                if (note is null)
+                {
+                    _logger.LogInformation(
+                    "Note not found. UserId {UserId}, NoteId {NoteId}",
+                    userId, id
+                );
+                    return NotFound();
+                }
+
+                return Ok(note);
             }
-            
-            _logger.LogInformation("Successfully retrieved note {NoteId} for user {UserId}", id, userId);
-            return Ok(note);
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in GetNote. UserId {UserId}, NoteId {NoteId}", userId, id);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error in GetNote. UserId {UserId}, NoteId {NoteId}", userId, id);
+                return StatusCode(500, "An unexpected error occurred.");
+            }
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateNote([FromBody] NoteCreateDto noteDto)
+        public async Task<IActionResult> CreateNote([FromBody] CreateNoteDto noteDto)
         {
             var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
             {
-                _logger.LogWarning("Create note attempt with invalid user ID at {Timestamp}", DateTime.UtcNow);
-                return Unauthorized("Invalid or missing user ID in token.");
+                _logger.LogInformation("Unauthorized request to CreateNote");
+                return Unauthorized();
             }
 
             if (noteDto == null)
             {
-                _logger.LogWarning("Null payload received for note creation at {Timestamp}", DateTime.UtcNow);
                 return BadRequest("Note data is required.");
             }
 
             if (string.IsNullOrWhiteSpace(noteDto.Title))
             {
-                _logger.LogWarning("Note creation failed due to missing title at {Timestamp}", DateTime.UtcNow);
                 return BadRequest("Title is required.");
             }
 
@@ -136,53 +155,50 @@ namespace RecoTrackApi.Controllers
                 Title = noteDto.Title.Trim(),
                 Content = noteDto.Content?.Trim(),
                 Tags = noteDto.Tags ?? new List<string>(),
+                Labels = noteDto.Labels ?? new List<string>(),
                 MediaUrls = noteDto.MediaUrls ?? new List<string>(),
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                DeletedAt = null
             };
+            _logger.LogInformation("CreateNote requested by UserId {UserId}", userId);
 
             try
             {
-                _logger.LogInformation("User {UserId} creating new note with title '{Title}' at {Timestamp}",
-                    userId, note.Title, DateTime.UtcNow);
-
                 await _noteService.CreateNoteAsync(note);
-
-                // Send notification via SignalR and store in DB
-                var message = $"{note.Title} is created successfully at {note.CreatedAt:yyyy-MM-dd HH:mm:ss}";
-                var notifications = await _notificationService.SendNotificationAsync(userId, message);
-                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification",new object []{ notifications});
-
-                _logger.LogInformation("Successfully created note {NoteId} for user {UserId} at {Timestamp}",
-                    note.Id, userId, DateTime.UtcNow);
+                _logger.LogInformation("Note created successfully. NoteId {NoteId}, UserId {UserId}",note.Id, userId);
 
                 return Ok(note);
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in CreateNote. UserId {UserId}", userId);
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create note for user {UserId} at {Timestamp}", userId, DateTime.UtcNow);
+                _logger.LogError(ex, "Unhandled error in CreateNote. UserId {UserId}", userId);
                 return StatusCode(500, "An unexpected error occurred while creating the note.");
             }
         }
 
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateNote(string id, [FromBody] NoteUpdateDto updateDto)
+        public async Task<IActionResult> UpdateNote(string id, [FromBody] UpdateNoteDto updateDto)
         {
             var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
             {
-                _logger.LogWarning("Unauthorized update attempt on note {NoteId} at {Timestamp}", id, DateTime.UtcNow);
+                _logger.LogInformation("Unauthorized request to UpdateNote");
                 return Unauthorized("Invalid or missing user ID.");
             }
 
             if (updateDto == null)
             {
-                _logger.LogWarning("Null payload received for update on note {NoteId} at {Timestamp}", id, DateTime.UtcNow);
                 return BadRequest("Note data is required.");
             }
 
-            _logger.LogInformation("User {UserId} attempting to update note {NoteId} at {Timestamp}", userId, id, DateTime.UtcNow);
+            _logger.LogInformation("UpdateNote requested. UserId {UserId}, NoteId {NoteId}", userId, id);
 
             try
             {
@@ -190,21 +206,24 @@ namespace RecoTrackApi.Controllers
 
                 if (!success)
                 {
-                    _logger.LogWarning("Note {NoteId} not found or not updated for user {UserId}", id, userId);
+                    _logger.LogInformation("Note not found or not updated. UserId {UserId}, NoteId {NoteId}", userId, id);
                     return NotFound();
                 }
 
                 // Send notification via SignalR and store in DB
-                var message = $"{updateDto.Title} is modified at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
-               var notifications = await _notificationService.SendNotificationAsync(userId, message);
-                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
-
-                _logger.LogInformation("Note {NoteId} successfully updated for user {UserId}", id, userId);
+               // var message = $"{updateDto.Title} is modified at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
+               //var notifications = await _notificationService.SendNotificationAsync(userId, message);
+               // await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
                 return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in UpdateNote. UserId {UserId}, NoteId {NoteId}", userId, id);
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while updating note {NoteId} for user {UserId}", id, userId);
+                _logger.LogError(ex, "Unhandled error in UpdateNote. UserId {UserId}, NoteId {NoteId}", userId, id);
                 return StatusCode(500, "An unexpected error occurred while updating the note.");
             }
         }
@@ -216,17 +235,14 @@ namespace RecoTrackApi.Controllers
             var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
             {
-                _logger.LogWarning("Unauthorized delete attempt on note {NoteId} at {Timestamp}", id, DateTime.UtcNow);
-                return Unauthorized("Invalid or missing user ID.");
+                _logger.LogInformation("Unauthorized request to DeleteNote");
+                return Unauthorized();
             }
 
             if (string.IsNullOrWhiteSpace(id))
-            {
-                _logger.LogWarning("Delete attempt with empty note ID by user {UserId} at {Timestamp}", userId, DateTime.UtcNow);
                 return BadRequest("Note ID is required.");
-            }
 
-            _logger.LogInformation("User {UserId} attempting to delete note {NoteId} at {Timestamp}", userId, id, DateTime.UtcNow);
+            _logger.LogInformation("DeleteNote requested. UserId {UserId}, NoteId {NoteId}", userId, id);
 
             try
             {
@@ -235,26 +251,35 @@ namespace RecoTrackApi.Controllers
 
                 if (!success)
                 {
-                    _logger.LogWarning("Note {NoteId} not found or unauthorized deletion attempt by user {UserId}", id, userId);
+                    _logger.LogInformation("Note not found or unauthorized deletion. UserId {UserId}, NoteId {NoteId}", userId, id);
                     return NotFound();
                 }
 
-                // Send notification via SignalR and store in DB
-                var message = noteToDelete != null ? $"{noteToDelete.Title} is deleted" : "Note is deleted";
-                var notifications = await _notificationService.SendNotificationAsync(userId, message);
-                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
+                // Optional: SignalR notification
+                if (noteToDelete != null)
+                {
+                    var message = $"{noteToDelete.Title} is deleted";
+                    var notifications = await _notificationService.SendNotificationAsync(userId, message);
+                    await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
+                }
 
-                _logger.LogInformation("Note {NoteId} successfully deleted by user {UserId}", id, userId);
+                _logger.LogInformation("Note {NoteId} successfully deleted by UserId {UserId}", id, userId);
 
                 var username = User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
                 return Ok(new { DeletedNoteId = id, Username = username });
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in DeleteNote. UserId {UserId}, NoteId {NoteId}", userId, id);
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while deleting note {NoteId} for user {UserId}", id, userId);
+                _logger.LogError(ex, "Unhandled error in DeleteNote. UserId {UserId}, NoteId {NoteId}", userId, id);
                 return StatusCode(500, "An unexpected error occurred while deleting the note.");
             }
         }
+
 
         [HttpPost("{id}/restore")]
         public async Task<IActionResult> RestoreNote(string id)
@@ -262,40 +287,106 @@ namespace RecoTrackApi.Controllers
             var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
             {
-                _logger.LogWarning("Unauthorized restore attempt on note {NoteId} at {Timestamp}", id, DateTime.UtcNow);
-                return Unauthorized("Invalid or missing user ID.");
+                _logger.LogInformation("Unauthorized request to RestoreNote");
+                return Unauthorized();
             }
 
             if (string.IsNullOrWhiteSpace(id))
-            {
-                _logger.LogWarning("Restore attempt with empty note ID by user {UserId} at {Timestamp}", userId, DateTime.UtcNow);
                 return BadRequest("Note ID is required.");
-            }
 
-            _logger.LogInformation("User {UserId} attempting to restore note {NoteId} at {Timestamp}", userId, id, DateTime.UtcNow);
+            _logger.LogInformation("RestoreNote requested. UserId {UserId}, NoteId {NoteId}", userId, id);
 
             try
             {
                 var restored = await _noteService.RestoreNoteAsync(id, userId);
                 if (!restored)
                 {
-                    _logger.LogWarning("Note {NoteId} not found or not deleted for user {UserId}", id, userId);
+                    _logger.LogInformation("Note not found or not deleted. UserId {UserId}, NoteId {NoteId}", userId, id);
                     return NotFound();
                 }
 
                 var note = await _noteService.GetNoteByIdAsync(id, userId);
-                var message = note != null ? $"{note.Title} is restored" : "Note is restored";
-                var notifications = await _notificationService.SendNotificationAsync(userId, message);
-                await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
+                if (note != null)
+                {
+                    var message = $"{note.Title} is restored";
+                    var notifications = await _notificationService.SendNotificationAsync(userId, message);
+                    await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
+                }
 
-                _logger.LogInformation("Note {NoteId} successfully restored by user {UserId}", id, userId);
+                _logger.LogInformation("Note {NoteId} successfully restored by UserId {UserId}", id, userId);
+
                 var username = User.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
                 return Ok(new { RestoredNoteId = id, Username = username });
             }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in RestoreNote. UserId {UserId}, NoteId {NoteId}", userId, id);
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while restoring note {NoteId} for user {UserId}", id, userId);
+                _logger.LogError(ex, "Unhandled error in RestoreNote. UserId {UserId}, NoteId {NoteId}", userId, id);
                 return StatusCode(500, "An unexpected error occurred while restoring the note.");
+            }
+        }
+
+        //get all favourite notes 
+        [HttpGet("favourites")]
+        public async Task<IActionResult> GetAllFavouriteNotes()
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                _logger.LogInformation("Unauthorized request to GetAllFavouriteNotes");
+                return Unauthorized();
+            }
+
+            _logger.LogInformation("GetAllFavouriteNotes requested by UserId {UserId}", userId);
+
+            try
+            {
+                var notes = await _noteService.GetAllFavouriteNotesAsync(userId);
+                _logger.LogInformation("Returning {Count} favourite notes for UserId {UserId}", notes.Count, userId);
+
+                if (notes.Count == 0)
+                    return Ok("No favourite notes found.");
+
+                return Ok(notes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error in GetAllFavouriteNotes. UserId {UserId}", userId);
+                return StatusCode(500, "An unexpected error occurred while retrieving favourite notes.");
+            }
+        }
+
+        //get all important notes 
+        [HttpGet("important")]
+        public async Task<IActionResult> GetAllImportantNotes()
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                _logger.LogInformation("Unauthorized request to GetAllImportantNotes");
+                return Unauthorized();
+            }
+
+            _logger.LogInformation("GetAllImportantNotes requested by UserId {UserId}", userId);
+
+            try
+            {
+                var notes = await _noteService.GetAllImportantNotesAsync(userId);
+                _logger.LogInformation("Returning {Count} important notes for UserId {UserId}", notes.Count, userId);
+
+                if (notes.Count == 0)
+                    return Ok("No important notes found.");
+
+                return Ok(notes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error in GetAllImportantNotes. UserId {UserId}", userId);
+                return StatusCode(500, "An unexpected error occurred while retrieving important notes.");
             }
         }
 
