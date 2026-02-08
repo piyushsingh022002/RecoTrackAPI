@@ -18,6 +18,7 @@ namespace RecoTrackApi.ControllersTest
     using System.Security.Claims;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using RecoTrack.Application.Models.Notes; // added to reference Note, CreateNoteDto, UpdateNoteDto
 
     public class NotesControllerTest
     {
@@ -100,7 +101,7 @@ namespace RecoTrackApi.ControllersTest
         {
             // Arrange
             var userId = "user123";
-            var noteDto = new NoteCreateDto { Title = null };
+            var noteDto = new CreateNoteDto { Title = null }; // changed from NoteCreateDto to CreateNoteDto
             SetUser(userId);
 
             // Act
@@ -116,7 +117,7 @@ namespace RecoTrackApi.ControllersTest
         {
             // Arrange
             var userId = "user123";
-            var updateDto = new NoteUpdateDto { Title = "Updated", Content = "", Tags = new List<string>(), MediaUrls = new List<string>(), CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+            var updateDto = new UpdateNoteDto { Title = "Updated", Content = "", Tags = new List<string>(), MediaUrls = new List<string>() };
             _noteServiceMock.Setup(s => s.UpdateNoteAsync("noteId", updateDto, userId)).ReturnsAsync(false);
             SetUser(userId);
 
