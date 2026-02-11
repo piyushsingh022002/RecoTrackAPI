@@ -14,7 +14,7 @@ namespace RecoTrack.Infrastructure.Services.GoogleAuthService
 
         public GoogleAuthService(IConfiguration config)
         {
-            _clientId = config["GoogleAuth:ClientId"];
+            _clientId = config["GoogleAuth:ClientId"] ?? throw new InvalidOperationException("GoogleAuth:ClientId is not configured.");
         }
 
         public async Task<GoogleJsonWebSignature.Payload> VerifyToken(string accessToken)
