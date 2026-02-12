@@ -110,7 +110,14 @@ namespace RecoTrackApi.Controllers
             if (user == null)
             {
                 // create a new user consistent with RegisterAsync model
-                var username = payload.Email.Split('@')[0];
+                // Use given_name for username and name for full name. Fallback to email local-part for username.
+                var username = !string.IsNullOrWhiteSpace(payload.GivenName)
+                ? payload.GivenName
+                : (payload.Email?.Split('@')[0] ?? "user");
+
+                // generate a temporary random password and store its hashed value
+                var tempPlain = System.Guid.NewGuid().ToString("N");
+                var hashedTemp = _authService.HashPassword(tempPlain);
 
                 user = new User
                 {
@@ -119,14 +126,15 @@ namespace RecoTrackApi.Controllers
                     Email = payload.Email,
                     PhoneNumber = string.Empty,
                     Dob = System.DateTime.UtcNow,
-                    PasswordHash = string.Empty,
+                    PasswordHash = hashedTemp,
+                    IsOAuthUser = true,
                     Profile = new UserProfile { AvatarUrl = payload.Picture },
                     AuthProviders = new System.Collections.Generic.List<AuthProvider>
                     {
                         new AuthProvider
                         {
                             Provider = "google",
-                            ProviderUserId = payload.Subject,
+                            ProviderUserId = payload.Subject ?? string.Empty,
                             Email = payload.Email,
                             ProfilePicture = payload.Picture,
                             CreatedAt = System.DateTime.UtcNow
@@ -135,6 +143,13 @@ namespace RecoTrackApi.Controllers
                 };
 
                 await _userRepository.CreateUserAsync(user);
+
+                // respond with the hashed temp password in Token field
+                return Ok(new AuthResponseDto
+                {
+                    Token = hashedTemp,
+                    Message = "success"
+                });
             }
             else
             {
@@ -143,16 +158,16 @@ namespace RecoTrackApi.Controllers
                 {
                     await _userRepository.UpdateAvatarUrlAsync(user.Id, payload.Picture);
                 }
+
+                // existing user -> generate JWT using existing auth service
+                var token = _authService.GenerateJwtToken(user);
+
+                return Ok(new AuthResponseDto
+                {
+                    Token = token,
+                    Message = "success"
+                });
             }
-
-            // generate JWT using existing auth service
-            var token = _authService.GenerateJwtToken(user);
-
-            return Ok(new AuthResponseDto
-            {
-                Token = token,
-                Message = "success"
-            });
         }
 
 

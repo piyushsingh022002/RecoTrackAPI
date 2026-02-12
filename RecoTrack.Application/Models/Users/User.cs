@@ -37,6 +37,9 @@ namespace RecoTrack.Application.Models.Users
 
         [BsonElement("profile")]
         public UserProfile Profile { get; set; } = new();
+
+        [BsonElement("isOAuthUser")]
+        public bool IsOAuthUser { get; set; } = false;
         // 👇 NEW (optional, safe for existing users)
         [BsonElement("authProviders")]
         public List<AuthProvider> AuthProviders { get; set; } = new();

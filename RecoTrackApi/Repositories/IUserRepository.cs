@@ -9,5 +9,6 @@ namespace RecoTrackApi.Repositories
         Task CreateUserAsync(User user);
         Task UpdatePasswordHashAsync(string email, string passwordHash);
         Task UpdateAvatarUrlAsync(string userId, string? avatarUrl);
+        Task UpdatePasswordAndClearOAuthFlagAsync(string email, string passwordHash);
     }
 }

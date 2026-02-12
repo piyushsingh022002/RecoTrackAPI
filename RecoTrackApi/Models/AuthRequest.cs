@@ -39,4 +39,12 @@ namespace RecoTrackApi.Models
         public string NewPassword { get; set; } = string.Empty;
         public string ConfirmPassword { get; set; } = string.Empty;
     }
+
+    // Request used when an OAuth-created user wants to set a permanent password.
+    public class SetPasswordFromOAuthRequest
+    {
+        public string Email { get; set; } = string.Empty;
+        public string HashedTempPassword { get; set; } = string.Empty; // the hashed temp password previously returned in Token
+        public string NewPassword { get; set; } = string.Empty;
+    }
 }

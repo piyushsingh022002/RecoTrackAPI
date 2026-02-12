@@ -53,5 +53,16 @@ namespace RecoTrackApi.Repositories
 
             await _users.UpdateOneAsync(filter, update);
         }
+
+        public async Task UpdatePasswordAndClearOAuthFlagAsync(string email, string passwordHash)
+        {
+            var filter = Builders<User>.Filter.Eq(u => u.Email, email);
+            var update = Builders<User>.Update
+                .Set(u => u.PasswordHash, passwordHash)
+                .Set(u => u.IsOAuthUser, false)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow);
+
+            await _users.UpdateOneAsync(filter, update);
+        }
     }
 }
