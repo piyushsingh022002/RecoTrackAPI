@@ -1,8 +1,9 @@
-using System;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using RecoTrack.Application.Models.AuthProviders;
+using System;
 
-namespace RecoTrackApi.Models
+namespace RecoTrack.Application.Models.Users
 {
     public class User
     {
@@ -36,6 +37,10 @@ namespace RecoTrackApi.Models
 
         [BsonElement("profile")]
         public UserProfile Profile { get; set; } = new();
+        // 👇 NEW (optional, safe for existing users)
+        [BsonElement("authProviders")]
+        public List<AuthProvider> AuthProviders { get; set; } = new();
+
 
         public User()
         {

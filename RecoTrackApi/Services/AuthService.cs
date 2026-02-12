@@ -10,6 +10,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Security.Cryptography;
 using System.Threading;
+using RecoTrack.Application.Models.Users;
 
 namespace RecoTrackApi.Services
 {

@@ -55,7 +55,7 @@ namespace RecoTrackApi.Controllers
             if (user is null)
                 return NotFound(new { Message = "User not found." });
 
-            var responseUser = new User
+            var responseUser = new RecoTrack.Application.Models.Users.User
             {
                 Id = user.Id,
                 Username = user.Username,
@@ -66,7 +66,8 @@ namespace RecoTrackApi.Controllers
                 PasswordHash = string.Empty,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt,
-                Profile = user.Profile
+                Profile = user.Profile,
+                AuthProviders = user.AuthProviders
             };
 
             return Ok(responseUser);

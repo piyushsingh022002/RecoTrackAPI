@@ -8,13 +8,14 @@ using MongoDB.Driver;
 using RecoTrack.Application.Interfaces;
 using RecoTrack.Application.Services;
 using RecoTrack.Data.Repositories;
+using RecoTrack.Infrastructure.Extensions;
 using RecoTrack.Infrastructure.Services;
+using RecoTrack.Infrastructure.Services.GoogleAuthService;
 using RecoTrack.Infrastructure.ServicesV2;
 using RecoTrack.Shared.Settings;
 using RecoTrackApi.Repositories;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Services;
-using RecoTrack.Infrastructure.Extensions;
 
 namespace RecoTrackApi.Extensions
 {
@@ -35,6 +36,7 @@ namespace RecoTrackApi.Extensions
             services.AddSingleton<RecoTrackApi.Repositories.Interfaces.ILogRepository, RecoTrackApi.Repositories.LogRepository>();
             services.AddScoped<RecoTrack.Application.Interfaces.ILogRepository, RecoTrack.Infrastructure.Services.LogRepository>();
             services.AddScoped<IEmailAuditRepository, EmailAuditRepository>();
+            services.AddScoped<GoogleAuthService>();
 
             // Object storage
             services.AddObjectStorageServices(configuration);
@@ -50,6 +52,9 @@ namespace RecoTrackApi.Extensions
             // Service token settings
             services.Configure<ServiceJwtSettings>(
                 configuration.GetSection("ServiceJwtSettings"));
+
+            // Email service settings
+            services.Configure<EmailServiceSettings>(configuration.GetSection("EmailService"));
 
             services.AddScoped<IServiceTokenGenerator, ServiceTokenGenerator>();
             services.AddHttpClient<IInternalHttpClient, InternalHttpClient>();
