@@ -104,8 +104,11 @@ namespace RecoTrackApi.Controllers
             if (payload == null || string.IsNullOrWhiteSpace(payload.Email))
                 return Unauthorized(new AuthResponseDto { Message = "Unable to verify Google user" });
 
+            // make a non-nullable local copy of email to satisfy the compiler
+            var email = payload.Email!.Trim();
+
             // check existing user by email
-            var user = await _userRepository.GetByEmailAsync(payload.Email);
+            var user = await _userRepository.GetByEmailAsync(email);
 
             if (user == null)
             {
@@ -113,7 +116,7 @@ namespace RecoTrackApi.Controllers
                 // Use given_name for username and name for full name. Fallback to email local-part for username.
                 var username = !string.IsNullOrWhiteSpace(payload.GivenName)
                 ? payload.GivenName
-                : (payload.Email?.Split('@')[0] ?? "user");
+                : (email.Split('@')[0] ?? "user");
 
                 // generate a temporary random password and store its hashed value
                 var tempPlain = System.Guid.NewGuid().ToString("N");
@@ -123,7 +126,7 @@ namespace RecoTrackApi.Controllers
                 {
                     Username = username,
                     FullName = string.IsNullOrWhiteSpace(payload.Name) ? username : payload.Name,
-                    Email = payload.Email,
+                    Email = email,
                     PhoneNumber = string.Empty,
                     Dob = System.DateTime.UtcNow,
                     PasswordHash = hashedTemp,
@@ -135,7 +138,7 @@ namespace RecoTrackApi.Controllers
                         {
                             Provider = "google",
                             ProviderUserId = payload.Subject ?? string.Empty,
-                            Email = payload.Email,
+                            Email = email,
                             ProfilePicture = payload.Picture,
                             CreatedAt = System.DateTime.UtcNow
                         }
