@@ -1,3 +1,4 @@
+using RecoTrack.Application.Models.Users;
 using RecoTrackApi.Models;
 using System.Threading;
 

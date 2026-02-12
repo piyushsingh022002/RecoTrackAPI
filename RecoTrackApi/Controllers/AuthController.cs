@@ -1,9 +1,13 @@
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
+using RecoTrack.Application.Models.Users;
+using RecoTrack.Application.Models.AuthProviders;
+using RecoTrack.Infrastructure.Services.GoogleAuthService;
 using RecoTrackApi.DTOs;
 using RecoTrackApi.Jobs;
 using RecoTrackApi.Models;
 using RecoTrackApi.Repositories.Interfaces;
+using RecoTrackApi.Repositories;
 using RecoTrackApi.Services;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -17,15 +21,21 @@ namespace RecoTrackApi.Controllers
         private readonly IAuthService _authService;
         private readonly IBackgroundJobClient _backgroundJob;
         private readonly ILogRepository _logRepository;
+        private readonly GoogleAuthService? _googleAuthService;
+        private readonly IUserRepository? _userRepository;
 
         public AuthController(
             IAuthService authService,
             ILogRepository logRepository,
-            IBackgroundJobClient backgroundJob)
+            IBackgroundJobClient backgroundJob,
+            GoogleAuthService? googleAuthService = null,
+            IUserRepository? userRepository = null)
         {
             _authService = authService;
             _logRepository = logRepository;
             _backgroundJob = backgroundJob;
+            _googleAuthService = googleAuthService;
+            _userRepository = userRepository;
         }
 
         [HttpPost("register")]
@@ -68,6 +78,83 @@ namespace RecoTrackApi.Controllers
                 Message = "success"
             });
         }
+
+        [HttpPost("google")]
+        public async Task<IActionResult> GoogleLogin(
+        [FromBody] GoogleLoginRequest request)
+        {
+            if (_googleAuthService == null || _userRepository == null)
+            {
+                return StatusCode(501, new AuthResponseDto { Message = "Google authentication is not configured." });
+            }
+
+            if (request is null || string.IsNullOrWhiteSpace(request.AccessToken))
+                return BadRequest(new AuthResponseDto { Message = "AccessToken is required" });
+
+            Google.Apis.Auth.GoogleJsonWebSignature.Payload payload;
+            try
+            {
+                payload = await _googleAuthService.VerifyToken(request.AccessToken);
+            }
+            catch (System.Exception)
+            {
+                return Unauthorized(new AuthResponseDto { Message = "Invalid Google token" });
+            }
+
+            if (payload == null || string.IsNullOrWhiteSpace(payload.Email))
+                return Unauthorized(new AuthResponseDto { Message = "Unable to verify Google user" });
+
+            // check existing user by email
+            var user = await _userRepository.GetByEmailAsync(payload.Email);
+
+            if (user == null)
+            {
+                // create a new user consistent with RegisterAsync model
+                var username = payload.Email.Split('@')[0];
+
+                user = new User
+                {
+                    Username = username,
+                    FullName = string.IsNullOrWhiteSpace(payload.Name) ? username : payload.Name,
+                    Email = payload.Email,
+                    PhoneNumber = string.Empty,
+                    Dob = System.DateTime.UtcNow,
+                    PasswordHash = string.Empty,
+                    Profile = new UserProfile { AvatarUrl = payload.Picture },
+                    AuthProviders = new System.Collections.Generic.List<AuthProvider>
+                    {
+                        new AuthProvider
+                        {
+                            Provider = "google",
+                            ProviderUserId = payload.Subject,
+                            Email = payload.Email,
+                            ProfilePicture = payload.Picture,
+                            CreatedAt = System.DateTime.UtcNow
+                        }
+                    }
+                };
+
+                await _userRepository.CreateUserAsync(user);
+            }
+            else
+            {
+                // update avatar if available
+                if (!string.IsNullOrWhiteSpace(payload.Picture))
+                {
+                    await _userRepository.UpdateAvatarUrlAsync(user.Id, payload.Picture);
+                }
+            }
+
+            // generate JWT using existing auth service
+            var token = _authService.GenerateJwtToken(user);
+
+            return Ok(new AuthResponseDto
+            {
+                Token = token,
+                Message = "success"
+            });
+        }
+
 
         [HttpDelete("clearMongoLogs")]
         public async Task<IActionResult> ClearLogs()

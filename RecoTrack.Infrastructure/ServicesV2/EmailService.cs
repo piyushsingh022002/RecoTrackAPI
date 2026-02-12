@@ -86,15 +86,15 @@ namespace RecoTrack.Infrastructure.ServicesV2
 
             var request = new
             {
-                email = toEmail,
-                otp,
-                actionType = "FORGOT_PASSWORD"
+                to = toEmail,
+                type = "OTP",
+                data = new { otp }
             };
 
             var serviceToken = _settings.ServiceToken;
 
             await _httpClient.PostAsync<object, object>(
-                _settings.OtpUrl,
+                _settings.Url,
                 request,
                 userJwt: serviceToken,
                 serviceJwt: serviceToken,

@@ -1,5 +1,5 @@
 using MongoDB.Driver;
-using RecoTrackApi.Models;
+using RecoTrack.Application.Models.Users;
 using RecoTrackApi.Services;
 
 namespace RecoTrackApi.Repositories

@@ -1,4 +1,4 @@
-using RecoTrackApi.Models;
+using RecoTrack.Application.Models.Users;
 
 namespace RecoTrackApi.Repositories
 {
