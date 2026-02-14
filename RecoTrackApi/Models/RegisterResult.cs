@@ -20,13 +20,12 @@ namespace RecoTrackApi.Models
         //public static RegisterResult Fail(string message) => new RegisterResult(false, message);
         //public static RegisterResult Ok() => new RegisterResult(true);
 
-        public static RegisterResult Ok(User user, string token)
+        public static RegisterResult Ok( string token)
         {
             return new RegisterResult
             {
                 Success = true,
                 ErrorMessage = "",
-                User = user,
                 Token = token
             };
         }

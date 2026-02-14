@@ -11,6 +11,7 @@ using RecoTrackApi.Repositories;
 using RecoTrackApi.Services;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace RecoTrackApi.Controllers
 {
@@ -118,9 +119,10 @@ namespace RecoTrackApi.Controllers
                 ? payload.GivenName
                 : (email.Split('@')[0] ?? "user");
 
-                // generate a temporary random password and store its hashed value
-                var tempPlain = System.Guid.NewGuid().ToString("N");
-                var hashedTemp = _authService.HashPassword(tempPlain);
+                // generate a strong random password and its hash
+                var randomBytes = RandomNumberGenerator.GetBytes(18); //18 bytes ->24 base64 chars
+                var strongPlain = System.Convert.ToBase64String(randomBytes);
+                var hashedTemp = _authService.HashPassword(strongPlain);
 
                 user = new User
                 {
@@ -137,20 +139,23 @@ namespace RecoTrackApi.Controllers
                         new AuthProvider
                         {
                             Provider = "google",
-                            ProviderUserId = payload.Subject ?? string.Empty,
-                            Email = email,
-                            ProfilePicture = payload.Picture,
-                            CreatedAt = System.DateTime.UtcNow
+                            ProviderUserId = payload.Subject ?? string.Empty
                         }
-                    }
+                    },
+                    Status = UserStatus.Active
                 };
 
                 await _userRepository.CreateUserAsync(user);
 
-                // respond with the hashed temp password in Token field
+                // enqueue job to send the plain strong password to user's email
+                _backgroundJob.Enqueue<SendGoogleUserJob>(job => job.SendGoogleUserAsync(email, strongPlain, username, "WELCOME_GOOGLE"));
+
+                // generate JWT for the newly created user and return it
+                var token = _authService.GenerateJwtToken(user);
+
                 return Ok(new AuthResponseDto
                 {
-                    Token = hashedTemp,
+                    Token = token,
                     Message = "success"
                 });
             }

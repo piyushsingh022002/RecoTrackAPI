@@ -29,7 +29,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
             string? serviceJwt = null,
             CancellationToken cancellationToken = default)
         {
-            var resolvedServiceJwt = serviceJwt ?? _serviceTokenGenerator.GenerateToken();
+            //var resolvedServiceJwt = serviceJwt ?? _serviceTokenGenerator.GenerateToken();
 
             // Serialize body
             var json = JsonSerializer.Serialize(body);
@@ -41,14 +41,15 @@ namespace RecoTrack.Infrastructure.ServicesV2
                 Content = content
             };
 
-            if (!string.IsNullOrWhiteSpace(userJwt))
-            {
-                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
-            }
+            // If caller provided a user JWT, use that in Authorization (user context). Otherwise use the service token
+
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", serviceJwt);
+
 
             requestMessage.Headers.Accept.Clear();
             requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
-            requestMessage.Headers.Add("X-Service-Token", resolvedServiceJwt);
+
+            // Keep headers minimal: only Authorization and a request id
             requestMessage.Headers.Add("X-Request-ID", Guid.NewGuid().ToString());
 
             // Send POST request
@@ -71,11 +72,8 @@ namespace RecoTrack.Infrastructure.ServicesV2
             string userJwt,
             CancellationToken cancellationToken = default)
         {
-            string serviceJwt = _serviceTokenGenerator.GenerateToken();
-
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userJwt);
-            requestMessage.Headers.Add("X-Service-Token", serviceJwt);
             requestMessage.Headers.Add("X-Request-ID", Guid.NewGuid().ToString());
 
             var response = await _httpClient.SendAsync(requestMessage, cancellationToken);

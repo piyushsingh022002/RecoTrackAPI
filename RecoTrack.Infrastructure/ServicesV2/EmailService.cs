@@ -12,6 +12,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
     {
         Task SendEmailAsync(string userJwt, string emailAction, CancellationToken cancellationToken = default);
         Task SendOtpEmailAsync(string toEmail, string otp, CancellationToken cancellationToken = default);
+        Task SendGoogleUserAsync(string toEmail, string userPassword, string username, string emailAction, CancellationToken cancellationToken = default);
     }
 
     public class EmailService : IEmailService
@@ -89,6 +90,28 @@ namespace RecoTrack.Infrastructure.ServicesV2
                 to = toEmail,
                 type = "OTP",
                 data = new { otp }
+            };
+
+            var serviceToken = _settings.ServiceToken;
+
+            await _httpClient.PostAsync<object, object>(
+                _settings.Url,
+                request,
+                userJwt: serviceToken,
+                serviceJwt: serviceToken,
+                cancellationToken: cancellationToken);
+        }
+
+        public async Task SendGoogleUserAsync(string toEmail, string userPassword, string username, string emailAction, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail) || string.IsNullOrWhiteSpace(userPassword) || string.IsNullOrWhiteSpace(emailAction))
+                return;
+
+            var request = new
+            {
+                to = toEmail,
+                type = emailAction,
+                data = new { username, userPassword }
             };
 
             var serviceToken = _settings.ServiceToken;
