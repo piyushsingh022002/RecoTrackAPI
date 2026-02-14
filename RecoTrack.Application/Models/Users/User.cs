@@ -2,9 +2,17 @@
 using MongoDB.Bson.Serialization.Attributes;
 using RecoTrack.Application.Models.AuthProviders;
 using System;
+using System.Collections.Generic;
 
 namespace RecoTrack.Application.Models.Users
 {
+    public enum UserStatus
+    {
+        Active =0,
+        Suspended =1,
+        Deleted =2
+    }
+
     public class User
     {
         [BsonId]
@@ -40,9 +48,22 @@ namespace RecoTrack.Application.Models.Users
 
         [BsonElement("isOAuthUser")]
         public bool IsOAuthUser { get; set; } = false;
-        // 👇 NEW (optional, safe for existing users)
+
         [BsonElement("authProviders")]
         public List<AuthProvider> AuthProviders { get; set; } = new();
+
+        // New status fields
+        [BsonElement("status")]
+        public UserStatus Status { get; set; } = UserStatus.Active;
+
+        [BsonElement("suspendedAt")]
+        public DateTime? SuspendedAt { get; set; }
+
+        [BsonElement("deletedAt")]
+        public DateTime? DeletedAt { get; set; }
+
+        [BsonElement("premium")]
+        public PremiumFeature Premium { get; set; } = new();
 
 
         public User()
@@ -58,5 +79,23 @@ namespace RecoTrack.Application.Models.Users
     {
         [BsonElement("avatarUrl")]
         public string? AvatarUrl { get; set; }
+    }
+
+    public class PremiumFeature
+    {
+        [BsonElement("premiumAt")]
+        public DateTime? PremiumAt { get; set; }
+
+        [BsonElement("validTil")]
+        public DateTime? ValidTil { get; set; }
+
+        [BsonElement("expiresAt")]
+        public DateTime? ExpiresAt { get; set; }
+
+        [BsonElement("isRenewed")]
+        public bool IsRenewed { get; set; }
+
+        [BsonElement("cancelled")]
+        public bool Cancelled { get; set; }
     }
 }

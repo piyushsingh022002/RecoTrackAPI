@@ -11,6 +11,7 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Threading;
 using RecoTrack.Application.Models.Users;
+using RecoTrack.Application.Models.AuthProviders;
 
 namespace RecoTrackApi.Services
 {
@@ -64,14 +65,36 @@ namespace RecoTrackApi.Services
             if (existingUser != null)
                 return RegisterResult.Fail("Email is already registered");
 
+            var now = DateTime.UtcNow;
             var user = new User
             {
                 Username = username,
                 FullName = request.FullName.Trim(),
                 Email = email,
-                PhoneNumber = request.PhoneNumber.Trim(),
+                PhoneNumber = request.PhoneNumber?.Trim() ?? string.Empty,
                 Dob = request.Dob,
-                PasswordHash = HashPassword(request.Password)
+                PasswordHash = HashPassword(request.Password),
+
+                // Explicitly mark as a non-OAuth user and initialize related fields
+                IsOAuthUser = false,
+                AuthProviders = new List<AuthProvider>
+                {
+                    new AuthProvider
+                    {
+                        Provider = "register_api",
+                        ProviderUserId = email
+                    }
+                },
+
+                // Ensure profile exists (avatar may be null/empty for standard registration)
+                Profile = new UserProfile { AvatarUrl = null },
+
+                // status
+                Status = UserStatus.Active,
+
+                // timestamps
+                CreatedAt = now,
+                UpdatedAt = now
             };
 
             await _userRepository.CreateUserAsync(user);
@@ -80,7 +103,7 @@ namespace RecoTrackApi.Services
             {
                 UserId = user.Id,
                 Question = string.IsNullOrWhiteSpace(request.SecurityQuestion) ? "SecretCode" : request.SecurityQuestion.Trim(),
-                AnswerHash = HashPassword(string.IsNullOrWhiteSpace(request.SecurityAnswer) ? "00000" : request.SecurityAnswer.Trim())
+                AnswerHash = HashPassword(string.IsNullOrWhiteSpace(request.SecurityAnswer) ? request.FullName.Trim() : request.SecurityAnswer.Trim())
             };
 
             await _securityQuestionRepository.SaveAsync(securityEntry);
@@ -89,13 +112,8 @@ namespace RecoTrackApi.Services
 
             _logger.LogInformation("User registered with ID: {UserId}", user.Id);
 
-            var newUser = new User
-            {
-                Id = user.Id,
-                Username = user.Username,
-                Email = user.Email
-            };
-            return RegisterResult.Ok(newUser, token);
+          
+            return RegisterResult.Ok(token);
         }
 
         public async Task<LoginResult> LoginAsync(LoginRequest request)
