@@ -1,3 +1,4 @@
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RecoTrack.Application.Models.Notes;
@@ -15,17 +16,20 @@ namespace RecoTrackApi.Controllers
         private readonly ILogger<NotesController> _logger;
         private readonly INotificationService _notificationService;
         private readonly Microsoft.AspNetCore.SignalR.IHubContext<RecoTrackApi.Hubs.NotificationHub> _notificationHub;
+        private readonly IBackgroundJobClient? _backgroundJob;
 
         public NotesController(
             INoteService noteService,
             ILogger<NotesController> logger,
             INotificationService notificationService,
-            Microsoft.AspNetCore.SignalR.IHubContext<RecoTrackApi.Hubs.NotificationHub> notificationHub)
+            Microsoft.AspNetCore.SignalR.IHubContext<RecoTrackApi.Hubs.NotificationHub> notificationHub,
+            IBackgroundJobClient? backgroundJob = null)
         {
             _noteService = noteService;
             _logger = logger;
             _notificationService = notificationService;
             _notificationHub = notificationHub;
+            _backgroundJob = backgroundJob;
         }
 
         private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -144,7 +148,7 @@ namespace RecoTrackApi.Controllers
                 return BadRequest("Note data is required.");
             }
 
-            if (string.IsNullOrWhiteSpace(noteDto.Title))
+            if (string.IsNullOrWhiteSpace(noteDto.Title) && !string.Equals(noteDto.SaveOption, "JUST_DOWNLOAD", System.StringComparison.OrdinalIgnoreCase))
             {
                 return BadRequest("Title is required.");
             }
@@ -152,7 +156,7 @@ namespace RecoTrackApi.Controllers
             var note = new Note
             {
                 UserId = userId,
-                Title = noteDto.Title.Trim(),
+                Title = noteDto.Title?.Trim(),
                 Content = noteDto.Content?.Trim(),
                 Tags = noteDto.Tags ?? new List<string>(),
                 Labels = noteDto.Labels ?? new List<string>(),
@@ -161,13 +165,65 @@ namespace RecoTrackApi.Controllers
                 UpdatedAt = DateTime.UtcNow,
                 DeletedAt = null
             };
-            _logger.LogInformation("CreateNote requested by UserId {UserId}", userId);
+
+            // SaveOption: SAVE | JUST_DOWNLOAD
+            var saveOption = noteDto.SaveOption ?? "SAVE";
+            var eventType = noteDto.EventType ?? "DOWNLOAD";
+
+            _logger.LogInformation("CreateNote requested by UserId {UserId} with SaveOption {SaveOption} and EventType {EventType}", userId, saveOption, eventType);
 
             try
             {
-                await _noteService.CreateNoteAsync(note);
-                _logger.LogInformation("Note created successfully. NoteId {NoteId}, UserId {UserId}",note.Id, userId);
+                // Use service helper to create or just record activity
+                if (_noteService is RecoTrackApi.Services.NoteService concrete)
+                {
+                    var noteRef = await concrete.CreateOrRecordAsync(note, saveOption, eventType, userId);
 
+                    // If IMPORT_EMAIL and SaveOption JUST_DOWNLOAD or SAVE, send email via background job
+                    if (string.Equals(eventType, "IMPORT_EMAIL", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Resolve JWT from Authorization header (if present)
+                        var authHeader = Request.Headers["Authorization"].ToString();
+                        string? userJwt = null;
+                        if (!string.IsNullOrWhiteSpace(authHeader))
+                        {
+                            if (authHeader.StartsWith("Bearer ", System.StringComparison.OrdinalIgnoreCase))
+                            {
+                                userJwt = authHeader[7..].Trim();
+                            }
+                            else
+                            {
+                                userJwt = authHeader;
+                            }
+                        }
+
+                        var externalEmail = noteDto.ExternalEmail?.Trim();
+
+                        // Enqueue the import note job. Job will resolve fallback to user's email from JWT if externalEmail is null/empty.
+                        if (_backgroundJob != null)
+                        {
+                            try
+                            {
+                                _backgroundJob.Enqueue<RecoTrackApi.Jobs.ImportNoteJob>(job => job.SendImportNoteAsync(userJwt, noteDto, "IMPORT_EMAIL", externalEmail));
+                                _logger.LogInformation("Enqueued ImportNoteJob for UserId {UserId} to email {Email}", userId, externalEmail ?? "(from JWT)");
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Failed to enqueue ImportNoteJob for UserId {UserId}", userId);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Background job client is not configured; import email will not be queued for UserId {UserId}", userId);
+                        }
+                    }
+
+                    // JUST_DOWNLOAD: return NoteRefId so frontend can track the download
+                    return Ok(note);
+                }
+
+                // Fallback: use interface method (create and return note)
+                await _noteService.CreateNoteAsync(note);
                 return Ok(note);
             }
             catch (ArgumentException ex)
@@ -348,7 +404,7 @@ namespace RecoTrackApi.Controllers
                 var notes = await _noteService.GetAllFavouriteNotesAsync(userId);
                 _logger.LogInformation("Returning {Count} favourite notes for UserId {UserId}", notes.Count, userId);
 
-                if (notes.Count == 0)
+                if (notes.Count ==0)
                     return Ok("No favourite notes found.");
 
                 return Ok(notes);
@@ -378,7 +434,7 @@ namespace RecoTrackApi.Controllers
                 var notes = await _noteService.GetAllImportantNotesAsync(userId);
                 _logger.LogInformation("Returning {Count} important notes for UserId {UserId}", notes.Count, userId);
 
-                if (notes.Count == 0)
+                if (notes.Count ==0)
                     return Ok("No important notes found.");
 
                 return Ok(notes);

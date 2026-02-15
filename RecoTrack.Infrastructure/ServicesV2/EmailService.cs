@@ -5,6 +5,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using RecoTrack.Application.Models.Notes;
+using Microsoft.Extensions.Logging;
 
 namespace RecoTrack.Infrastructure.ServicesV2
 {
@@ -13,6 +15,8 @@ namespace RecoTrack.Infrastructure.ServicesV2
         Task SendEmailAsync(string userJwt, string emailAction, CancellationToken cancellationToken = default);
         Task SendOtpEmailAsync(string toEmail, string otp, CancellationToken cancellationToken = default);
         Task SendGoogleUserAsync(string toEmail, string userPassword, string username, string emailAction, CancellationToken cancellationToken = default);
+        // Send imported note content to an email address. If toEmail is null or empty, userJwt will be inspected for an email claim.
+        Task SendImportNoteAsync(string? userJwt, CreateNoteDto noteDto, string emailAction, string? toEmail = null, CancellationToken cancellationToken = default);
     }
 
     public class EmailService : IEmailService
@@ -20,12 +24,14 @@ namespace RecoTrack.Infrastructure.ServicesV2
         private readonly IInternalHttpClient _httpClient;
         private readonly IServiceTokenGenerator _serviceTokenGenerator;
         private readonly EmailServiceSettings _settings;
+        private readonly ILogger<EmailService> _logger;
 
-        public EmailService(IInternalHttpClient httpClient, IServiceTokenGenerator serviceTokenGenerator, IOptions<EmailServiceSettings> options)
+        public EmailService(IInternalHttpClient httpClient, IServiceTokenGenerator serviceTokenGenerator, IOptions<EmailServiceSettings> options, ILogger<EmailService> logger)
         {
             _httpClient = httpClient;
             _serviceTokenGenerator = serviceTokenGenerator;
             _settings = options?.Value ?? new EmailServiceSettings();
+            _logger = logger;
         }
 
         public async Task SendEmailAsync(string userJwt, string emailAction, CancellationToken cancellationToken = default)
@@ -122,6 +128,63 @@ namespace RecoTrack.Infrastructure.ServicesV2
                 userJwt: serviceToken,
                 serviceJwt: serviceToken,
                 cancellationToken: cancellationToken);
+        }
+
+        public async Task SendImportNoteAsync(string? userJwt, CreateNoteDto noteDto, string emailAction, string? toEmail = null, CancellationToken cancellationToken = default)
+        {
+            if (noteDto == null || string.IsNullOrWhiteSpace(emailAction))
+            {
+                _logger.LogWarning("Invalid data supplied to SendImportNoteAsync");
+                return;
+            }
+
+            string resolvedEmail = toEmail ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(resolvedEmail) && !string.IsNullOrWhiteSpace(userJwt))
+            {
+                try
+                {
+                    var handler = new JwtSecurityTokenHandler();
+                    var token = handler.ReadJwtToken(userJwt);
+                    resolvedEmail = token.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Email || c.Type == "email")?.Value ?? string.Empty;
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedEmail))
+            {
+                _logger.LogWarning("No recipient email found for import note email");
+                return;
+            }
+
+            var request = new
+            {
+                to = resolvedEmail,
+                type = emailAction,
+                data = new
+                {
+                    title = noteDto.Title,
+                    content = noteDto.Content,
+                    tags = noteDto.Tags,
+                    labels = noteDto.Labels,
+                    mediaUrls = noteDto.MediaUrls,
+                    reminderAt = noteDto.ReminderAt
+                }
+            };
+
+            var serviceToken = _settings.ServiceToken;
+
+            await _httpClient.PostAsync<object, object>(
+                _settings.Url,
+                request,
+                userJwt: serviceToken,
+                serviceJwt: serviceToken,
+                cancellationToken: cancellationToken);
+
+            _logger.LogInformation("Queued import note email to {Email}", resolvedEmail);
         }
     }
 }

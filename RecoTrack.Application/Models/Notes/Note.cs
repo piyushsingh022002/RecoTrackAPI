@@ -23,6 +23,11 @@ namespace RecoTrack.Application.Models.Notes
         [BsonElement("content")]
         public string? Content { get; set; }
 
+        // New immutable reference id used for tracking downloads/imports
+        [BsonElement("noteRefId")]
+        [BsonRepresentation(BsonType.String)]
+        public Guid NoteRefId { get; init; } = Guid.NewGuid();
+
         // Tags (user-defined)
         [BsonElement("tags")]
         public List<string> Tags { get; set; } = new();

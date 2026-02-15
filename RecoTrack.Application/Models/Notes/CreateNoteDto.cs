@@ -20,5 +20,15 @@ namespace RecoTrack.Application.Models.Notes
         public List<string> MediaUrls { get; set; } = new();
 
         public DateTime? ReminderAt { get; set; }
+
+        // New fields for frontend workflow
+        // SaveOption: "SAVE" | "JUST_DOWNLOAD"
+        public string? SaveOption { get; set; }
+
+        // EventType: "DOWNLOAD" | "IMPORT_EMAIL"
+        public string? EventType { get; set; }
+
+        // Optional external email to send the imported note to. If not provided, user's email from JWT will be used.
+        public string? ExternalEmail { get; set; }
     }
 }

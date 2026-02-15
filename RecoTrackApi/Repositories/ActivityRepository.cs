@@ -8,10 +8,12 @@ namespace RecoTrackApi.Repositories
 {
     public class ActivityRepository : IActivityRepository
     {
+        private readonly IMongoCollection<NoteActivityModel> _activities;
         private readonly IMongoCollection<Note> _notes;
 
         public ActivityRepository(IMongoDatabase database)
         {
+            _activities = database.GetCollection<NoteActivityModel>("note_activity");
             _notes = database.GetCollection<Note>("Notes");
         }
 
@@ -56,6 +58,18 @@ namespace RecoTrackApi.Repositories
             var dict = activity.ToDictionary(a => a.Date, a => a.NoteCount);
             var filled = allDates.Select(d => new NoteActivityDto { Date = d, NoteCount = dict.ContainsKey(d) ? dict[d] : 0 }).ToList();
             return filled;
+        }
+
+        public async Task RecordActivityAsync(string userId, Guid noteRefId, string eventType)
+        {
+            var activity = new NoteActivityModel
+            {
+                UserId = userId,
+                NoteRefId = noteRefId,
+                EventType = eventType,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _activities.InsertOneAsync(activity);
         }
     }
 }
