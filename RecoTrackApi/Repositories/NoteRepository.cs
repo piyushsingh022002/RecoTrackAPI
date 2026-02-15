@@ -7,7 +7,7 @@ using RecoTrackApi.Repositories.Interfaces;
 
 namespace RecoTrackApi.Repositories
 {
-    public class NoteRepository : INoteRepository, IActivityRepository
+    public class NoteRepository : INoteRepository
     {
         private readonly IMongoCollection<Note> _notes;
 

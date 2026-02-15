@@ -8,10 +8,12 @@ namespace RecoTrackApi.Services
     public class NoteService : INoteService
     {
         private readonly INoteRepository _noteRepository;
+        private readonly IActivityRepository _activityRepository;
 
-        public NoteService(INoteRepository noteRepository)
+        public NoteService(INoteRepository noteRepository, IActivityRepository activityRepository)
         {
             _noteRepository = noteRepository;
+            _activityRepository = activityRepository;
         }
 
         public async Task<List<Note>> GetNotesAsync(string userId)
@@ -54,6 +56,31 @@ namespace RecoTrackApi.Services
 
             note.DeletedAt = null;
             await _noteRepository.CreateNoteAsync(note);
+        }
+
+        // New helper to create or just record an activity
+        public async Task<Guid> CreateOrRecordAsync(Note note, string saveOption, string? eventType, string userId)
+        {
+            // Ensure note has a NoteRefId (it's init-only in model so already set)
+            var noteRef = note.NoteRefId;
+
+            if (string.Equals(saveOption, "SAVE", StringComparison.OrdinalIgnoreCase))
+            {
+                await CreateNoteAsync(note);
+            }
+            else
+            {
+                // JUST_DOWNLOAD: do not persist note, but we still record activity below
+            }
+
+            // Record activity via the dedicated activity repository
+            if (_activityRepository != null)
+            {
+                var evt = string.IsNullOrWhiteSpace(eventType) ? "DOWNLOAD" : eventType;
+                await _activityRepository.RecordActivityAsync(userId, noteRef, evt);
+            }
+
+            return noteRef;
         }
 
         public async Task<bool> UpdateNoteAsync(string noteId, UpdateNoteDto updateDto, string userId)
@@ -104,9 +131,7 @@ namespace RecoTrackApi.Services
 
         public async Task<List<NoteActivityDto>> GetNoteActivityAsync(string userId, DateTime startDate, DateTime endDate)
         {
-            if (_noteRepository is IActivityRepository activityRepo)
-                return await activityRepo.GetNoteActivityAsync(userId, startDate, endDate);
-            throw new NotImplementedException("Note activity not implemented in repository");
+            return await _activityRepository.GetNoteActivityAsync(userId, startDate, endDate);
         }
 
         public async Task<List<Note>> GetNotesByDateAsync(string userId, DateTime date)
