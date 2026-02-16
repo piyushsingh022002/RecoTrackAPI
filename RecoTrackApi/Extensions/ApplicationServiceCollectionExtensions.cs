@@ -22,7 +22,10 @@ namespace RecoTrackApi.Extensions
             services.AddScoped<IJobMetricsRepository, JobMetricsRepository>();
             services.AddHttpClient<IInternalHttpClient, InternalHttpClient>();
             services.AddSingleton<IServiceTokenGenerator, ServiceTokenGenerator>();
-            services.AddScoped<IEmailService, EmailService>();
+
+            // EmailService is registered as a typed HttpClient in InfrastructureServiceCollectionExtensions
+            // Do not register it here as AddScoped<EmailService>() would override the typed client and result
+            // in EmailService being constructed without the configured HttpClient (causing relative URI errors).
 
             return services;
         }
