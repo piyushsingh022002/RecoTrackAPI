@@ -67,24 +67,12 @@ namespace RecoTrack.Infrastructure.Extensions
                     settings.SecretKey
                     );
 
-                //var s3Config = new AmazonS3Config();
-
-                //if (!string.IsNullOrWhiteSpace(settings.EndpointUrl))
-                //{
-                //    s3Config.ServiceURL = settings.EndpointUrl;
-                //    s3Config.ForcePathStyle = true;
-                //}
-                //else
-                //{
-                //    s3Config.RegionEndpoint = RegionEndpoint.GetBySystemName(settings.Region);
-                //    s3Config.ForcePathStyle = settings.UsePathStyle;
-                //}
-
                 return new AmazonS3Client(credentials, config);
 
             });
 
             services.AddScoped<IObjectStorageService, S3ObjectStorageService>();
+
             return services;
         }
     }

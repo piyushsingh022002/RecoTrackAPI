@@ -45,20 +45,20 @@ namespace RecoTrackApi.Extensions
             services.AddHttpClient<IAutomatedPrReviewService, AutomatedPrReviewService>();
             services.AddHttpClient<IGitHubClientService, GitHubClientService>();
 
-            // Email
-            services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
-            services.AddScoped<IEmailSender, MailKitEmailSender>();
+            // Register Brevo settings
+            services.Configure<BrevoSettings>(configuration.GetSection("BrevoSettings"));
 
-            // Service token settings
-            services.Configure<ServiceJwtSettings>(
-                configuration.GetSection("ServiceJwtSettings"));
+            // Register Brevo HttpClient
+            services.AddHttpClient("brevo", client =>
+            {
+                client.BaseAddress = new System.Uri("https://api.brevo.com/");
+                client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            });
 
-            // Email service settings
-            services.Configure<EmailServiceSettings>(configuration.GetSection("EmailService"));
+            // Register concrete EmailService to be used for welcome emails
+            services.AddScoped<EmailService>();
 
-            services.AddScoped<IServiceTokenGenerator, ServiceTokenGenerator>();
-            services.AddHttpClient<IInternalHttpClient, InternalHttpClient>();
-            services.AddScoped<IEmailService, EmailService>();
+            services.AddInfrastructureServices(configuration);
 
             // Hangfire
             var hangfireOptions = new MongoStorageOptions
