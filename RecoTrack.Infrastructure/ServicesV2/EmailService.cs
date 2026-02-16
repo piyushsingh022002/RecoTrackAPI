@@ -77,9 +77,11 @@ namespace RecoTrack.Infrastructure.ServicesV2
             };
 
             var serviceToken = _settings.ServiceToken;
+            var serviceUrl = _settings.Url;
+            Console.WriteLine($"[EmailService] Sending '{emailAction}' email to {email} with name '{name}' using service token '{serviceToken} on the Service url {serviceUrl}'");
             // Pass the configured service token as both Authorization (userJwt) and X-Service-Token so external service receives it
             await _httpClient.PostAsync<object, object>(
-                _settings.Url,
+                serviceUrl,
                 request,
                 userJwt: serviceToken,
                 serviceJwt: serviceToken,
