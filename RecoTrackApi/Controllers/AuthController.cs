@@ -147,7 +147,8 @@ namespace RecoTrackApi.Controllers
 
                 await _userRepository.CreateUserAsync(user);
 
-                // Email sending for Google sign-up is disabled.
+                // enqueue welcome email job for Google-registered users with auto-generated password
+                _backgroundJob.Enqueue<SendGoogleUserJob>(job => job.SendGoogleUserAsync(email, strongPlain, username, "GOOGLE_WELCOME"));
 
                 // generate JWT for the newly created user and return it
                 var token = _authService.GenerateJwtToken(user);

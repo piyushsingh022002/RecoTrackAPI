@@ -39,7 +39,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
     /// Uses Brevo transactional API via injected HttpClient (typed client). Designed to be extensible for
     /// additional email types in the future without changing callers.
     /// </summary>
-    public class EmailService
+    public partial class EmailService
     {
         private readonly HttpClient _httpClient;
         private readonly BrevoSettings _settings;
@@ -154,6 +154,97 @@ namespace RecoTrack.Infrastructure.ServicesV2
             // - Verify SenderEmail is validated in Brevo account
             // - Check suppression/blacklist for recipient
             // - Check spam folder or DMARC/SPF/DKIM configuration for sender domain
+        }
+
+        /// <summary>
+        /// Send Google-specific welcome email including auto-generated password.
+        /// This uses the existing Brevo client and a new template.
+        /// </summary>
+        public async Task SendGoogleWelcomeEmailAsync(string toEmail, string username, string userPassword, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail))
+            {
+                _logger.LogWarning("SendGoogleWelcomeEmailAsync called with empty toEmail");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_settings.ApiKey))
+            {
+                _logger.LogError("Brevo API key is not configured");
+                throw new InvalidOperationException("Brevo API key not configured");
+            }
+
+            var safeName = string.IsNullOrWhiteSpace(username) ? toEmail.Split('@')[0] : username;
+
+            var subject = GoogleWelcomeEmailTemplate.Subject;
+            var html = GoogleWelcomeEmailTemplate.HtmlTemplate.Replace("{username}", System.Net.WebUtility.HtmlEncode(safeName))
+                .Replace("{userPassword}", System.Net.WebUtility.HtmlEncode(userPassword));
+
+            var requestObj = new BrevoEmailRequest
+            {
+                sender = new BrevoSender { email = _settings.SenderEmail, name = _settings.SenderName },
+                to = new List<BrevoRecipient> { new BrevoRecipient { email = toEmail, name = safeName } },
+                subject = subject,
+                htmlContent = html,
+                @params = new { username = safeName, userPassword }
+            };
+
+            var json = JsonSerializer.Serialize(requestObj, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+            _logger.LogDebug("Brevo request payload for Google welcome email to {Email}: {Payload}", toEmail, json);
+
+            Uri targetUri;
+            if (_httpClient.BaseAddress != null)
+            {
+                targetUri = new Uri(_httpClient.BaseAddress, BrevoEndpoint);
+            }
+            else
+            {
+                targetUri = new Uri(new Uri(DefaultBrevoBase), BrevoEndpoint);
+                _logger.LogWarning("HttpClient.BaseAddress was null when sending email; falling back to {Base}", DefaultBrevoBase);
+            }
+
+            using var httpReq = new HttpRequestMessage(HttpMethod.Post, targetUri);
+            httpReq.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            httpReq.Headers.Add("api-key", _settings.ApiKey);
+            httpReq.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage resp;
+            try
+            {
+                resp = await _httpClient.SendAsync(httpReq, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("SendGoogleWelcomeEmailAsync cancelled for {Email}", toEmail);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to call Brevo API for Google welcome email to {Email}", toEmail);
+                throw;
+            }
+
+            string respBody = string.Empty;
+            try
+            {
+                respBody = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to read Brevo response body for {Email}", toEmail);
+            }
+
+            resp.Headers.TryGetValues("sib-request-id", out var sibValues);
+            var sibRequestId = sibValues != null ? string.Join(',', sibValues) : string.Empty;
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogError("Brevo API returned non-success status {Status} for {Email}. SibRequestId: {ReqId}. Body: {Body}", resp.StatusCode, toEmail, sibRequestId, respBody);
+                throw new InvalidOperationException($"Brevo API error: {resp.StatusCode}");
+            }
+
+            _logger.LogInformation("Brevo API responded {Status} for {Email}. SibRequestId: {ReqId}. Body: {Body}", resp.StatusCode, toEmail, sibRequestId, respBody);
         }
     }
 }
