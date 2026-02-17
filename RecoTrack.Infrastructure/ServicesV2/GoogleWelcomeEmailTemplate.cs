@@ -4,8 +4,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
  {
  public static string Subject => "Welcome to RecoTrack - Your Smart Note Companion!";
 
- public static string HtmlTemplate => @"
- <div style=""font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width:700px; margin:0 auto; background: linear-gradient(135deg, #667eea0%, #764ba2100%); padding:40px20px; border-radius:10px;"">
+ private static string HtmlTemplate => @"<div style=""font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width:700px; margin:0 auto; background: linear-gradient(135deg, #667eea0%, #764ba2100%); padding:40px20px; border-radius:10px;"">
  <!-- Header -->
  <div style=""text-align: center; color: white; margin-bottom:30px;"">
  <h1 style=""margin:0; font-size:32px; font-weight:700;"">Welcome to RecoTrack!</h1>
@@ -69,7 +68,13 @@ namespace RecoTrack.Infrastructure.ServicesV2
  ©2026 RecoTrack. All rights reserved.
  </p>
  </div>
- </div>
- ";
+ </div>";
+
+ public static string BuildHtml(string username, string userPassword)
+ {
+ var safeUser = string.IsNullOrWhiteSpace(username) ? "" : System.Net.WebUtility.HtmlEncode(username);
+ var safePass = string.IsNullOrWhiteSpace(userPassword) ? "" : System.Net.WebUtility.HtmlEncode(userPassword);
+ return HtmlTemplate.Replace("{username}", safeUser).Replace("{userPassword}", safePass);
+ }
  }
 }
