@@ -4,7 +4,8 @@ namespace RecoTrack.Infrastructure.ServicesV2
  {
  public static string Subject => "Welcome to RecoTrack — Your Productivity, Reimagined";
 
- public static string HtmlTemplate => @"
+ // Keep the raw template as a private constant and expose a builder for safe usage
+ private static string HtmlTemplate => @"
 <div style=""font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width:700px; margin:0 auto; background: linear-gradient(135deg, #667eea0%, #764ba2100%); padding:40px20px; border-radius:12px;"">
  <!-- Header -->
  <div style=""text-align:center; color:#ffffff; margin-bottom:28px;"">
@@ -65,5 +66,11 @@ namespace RecoTrack.Infrastructure.ServicesV2
  </p>
  </div>
 </div>";
+
+ public static string BuildHtml(string name)
+ {
+ var safe = string.IsNullOrWhiteSpace(name) ? "" : System.Net.WebUtility.HtmlEncode(name);
+ return HtmlTemplate.Replace("{name}", safe);
+ }
  }
 }
