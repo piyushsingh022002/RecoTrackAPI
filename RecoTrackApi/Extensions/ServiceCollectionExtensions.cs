@@ -20,7 +20,9 @@ namespace RecoTrackApi.Extensions
                 {
                     policy.WithOrigins(
                         "https://recotrackpiyushsingh.vercel.app",
-                            "http://localhost:5173")
+                            "http://localhost:5173",
+                            "http://localhost:3000",
+                            "https://portfoliopiyushsingh.vercel.app")
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials();
