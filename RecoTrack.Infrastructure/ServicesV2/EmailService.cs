@@ -138,6 +138,15 @@ namespace RecoTrack.Infrastructure.ServicesV2
         }
 
         /// <summary>
+        /// Public helper for sending custom HTML emails. This wraps internal Brevo request handling so callers
+        /// (controllers/jobs) may send arbitrary templates without duplicating Brevo-specific logic.
+        /// </summary>
+        public Task SendCustomEmailAsync(string toEmail, string toName, string subject, string htmlContent, CancellationToken cancellationToken = default)
+        {
+            return SendEmailInternalAsync(toEmail, toName, subject, htmlContent, null, cancellationToken);
+        }
+
+        /// <summary>
         /// Send registration welcome email to the supplied recipient.
         /// </summary>
         public async Task SendWelcomeEmailAsync(string toEmail, string username, CancellationToken cancellationToken = default)
