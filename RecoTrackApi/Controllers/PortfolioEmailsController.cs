@@ -146,7 +146,8 @@ namespace RecoTrackApi.Controllers
  var ownerHtml = CommonEmailTemplate.BuildHtml(ownerSubject, ownerBodyHtml, "Reply to sender", $"mailto:{System.Net.WebUtility.HtmlEncode(senderEmail)}");
 
  var ownerEmail = _brevoSettings.SenderEmail; // workspace owner
- await _emailService.SendCustomEmailAsync(ownerEmail, _brevoSettings.SenderName, ownerSubject, ownerHtml);
+ // Use friendly sender name for portfolio emails
+ await _emailService.SendCustomEmailAsync(ownerEmail, _brevoSettings.SenderName, ownerSubject, ownerHtml, null, "Piyush's Portfolio");
 
  // Send acknowledge email to sender if sender email provided
  if (!string.IsNullOrWhiteSpace(senderEmail))
@@ -154,14 +155,15 @@ namespace RecoTrackApi.Controllers
  var ackSubject = "Thanks for contacting me";
  var ackBodySb = new StringBuilder();
  ackBodySb.Append($"<p>Hi {System.Net.WebUtility.HtmlEncode(senderName)},</p>");
- ackBodySb.Append("<p>Thanks for reaching out via my portfolio. I have received your message and will get back to you soon.</p>");
+ // Minimal acknowledgement message - do not echo payload
+ ackBodySb.Append("<p>Thanks for reaching out via my portfolio. I will reach you out Very soon.</p>");
  ackBodySb.Append("<p>Best,<br/>Piyush</p>");
 
  var ackHtml = CommonEmailTemplate.BuildHtml(ackSubject, ackBodySb.ToString(), "Visit portfolio", "https://piyushsingh.com");
 
  try
  {
- await _emailService.SendCustomEmailAsync(senderEmail, senderName, ackSubject, ackHtml);
+ await _emailService.SendCustomEmailAsync(senderEmail, senderName, ackSubject, ackHtml, null, "Piyush's Portfolio");
  }
  catch (Exception ex)
  {

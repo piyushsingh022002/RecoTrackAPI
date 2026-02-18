@@ -57,7 +57,8 @@ namespace RecoTrack.Infrastructure.ServicesV2
         }
 
         // Small helper that encapsulates request creation, sending and common logging
-        private async Task SendEmailInternalAsync(string toEmail, string toName, string subject, string htmlContent, object? @params = null, CancellationToken cancellationToken = default)
+        // Added optional sender override parameters so callers can change 'From' on a per-email basis.
+        private async Task SendEmailInternalAsync(string toEmail, string toName, string subject, string htmlContent, object? @params = null, string? senderEmailOverride = null, string? senderNameOverride = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(toEmail))
             {
@@ -71,9 +72,12 @@ namespace RecoTrack.Infrastructure.ServicesV2
                 throw new InvalidOperationException("Brevo API key not configured");
             }
 
+            var senderEmail = string.IsNullOrWhiteSpace(senderEmailOverride) ? _settings.SenderEmail : senderEmailOverride;
+            var senderName = string.IsNullOrWhiteSpace(senderNameOverride) ? _settings.SenderName : senderNameOverride;
+
             var requestObj = new BrevoEmailRequest
             {
-                sender = new BrevoSender { email = _settings.SenderEmail, name = _settings.SenderName },
+                sender = new BrevoSender { email = senderEmail, name = senderName },
                 to = new List<BrevoRecipient> { new BrevoRecipient { email = toEmail, name = toName } },
                 subject = subject,
                 htmlContent = htmlContent,
@@ -140,10 +144,11 @@ namespace RecoTrack.Infrastructure.ServicesV2
         /// <summary>
         /// Public helper for sending custom HTML emails. This wraps internal Brevo request handling so callers
         /// (controllers/jobs) may send arbitrary templates without duplicating Brevo-specific logic.
+        /// Added optional fromName/fromEmail so callers (like portfolio controller) can change sender name.
         /// </summary>
-        public Task SendCustomEmailAsync(string toEmail, string toName, string subject, string htmlContent, CancellationToken cancellationToken = default)
+        public Task SendCustomEmailAsync(string toEmail, string toName, string subject, string htmlContent, string? fromEmail = null, string? fromName = null, CancellationToken cancellationToken = default)
         {
-            return SendEmailInternalAsync(toEmail, toName, subject, htmlContent, null, cancellationToken);
+            return SendEmailInternalAsync(toEmail, toName, subject, htmlContent, null, fromEmail, fromName, cancellationToken);
         }
 
         /// <summary>
@@ -161,7 +166,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
             var subject = WelcomeEmailTemplate.Subject;
             var html = WelcomeEmailTemplate.BuildHtml(safeName);
 
-            await SendEmailInternalAsync(toEmail, safeName, subject, html, new { username = safeName }, cancellationToken).ConfigureAwait(false);
+            await SendEmailInternalAsync(toEmail, safeName, subject, html, new { username = safeName }, null, null, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -179,7 +184,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
             var subject = GoogleWelcomeEmailTemplate.Subject;
             var html = GoogleWelcomeEmailTemplate.BuildHtml(safeName, userPassword);
 
-            await SendEmailInternalAsync(toEmail, safeName, subject, html, new { username = safeName, userPassword }, cancellationToken).ConfigureAwait(false);
+            await SendEmailInternalAsync(toEmail, safeName, subject, html, new { username = safeName, userPassword }, null, null, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -215,7 +220,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
 
             var html = CommonEmailTemplate.BuildHtml("Your Imported Note", sb.ToString(), "View your notes in RecoTrack", "https://recotrackpiyushsingh.vercel.app/notes");
 
-            await SendEmailInternalAsync(recipient, recipientName, subject, html, new { noteTitle = noteDto.Title }, cancellationToken).ConfigureAwait(false);
+            await SendEmailInternalAsync(recipient, recipientName, subject, html, new { noteTitle = noteDto.Title }, null, null, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -241,7 +246,7 @@ namespace RecoTrack.Infrastructure.ServicesV2
             var bodyHtml = sb.ToString();
             var html = CommonEmailTemplate.BuildHtml("Password Reset OTP", bodyHtml, "Reset Password", "https://recotrackpiyushsingh.vercel.app/forgot-password");
 
-            await SendEmailInternalAsync(toEmail, safeName, subject, html, new { otp = otpCode }, cancellationToken).ConfigureAwait(false);
+            await SendEmailInternalAsync(toEmail, safeName, subject, html, new { otp = otpCode }, null, null, cancellationToken).ConfigureAwait(false);
         }
     }
 }
