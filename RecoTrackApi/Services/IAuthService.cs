@@ -14,5 +14,6 @@ namespace RecoTrackApi.Services
         Task<PasswordOtpResult> SendPasswordResetOtpAsync(string email, CancellationToken cancellationToken = default);
         Task<PasswordOtpVerificationResult> VerifyPasswordResetOtpAsync(string email, string otp, CancellationToken cancellationToken = default);
         Task<LoginResult> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default);
+        Task<LoginResult> VerifyMfaAsync(string successCode, string otp);
     }
 }

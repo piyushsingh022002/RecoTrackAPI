@@ -5,6 +5,7 @@ using RecoTrackApi.Models;
 using RecoTrackApi.Repositories.Interfaces;
 using RecoTrackApi.Services;
 using System;
+using System.Threading.Tasks;
 
 namespace RecoTrackApi.Repositories
 {
@@ -62,6 +63,16 @@ namespace RecoTrackApi.Repositories
         {
             var filter = Builders<PasswordResetEntry>.Filter.Eq(x => x.Email, email) &
                          Builders<PasswordResetEntry>.Filter.Eq(x => x.SuccessCode, successCode) &
+                         Builders<PasswordResetEntry>.Filter.Eq(x => x.Active, 1);
+
+            return await _collection.Find(filter)
+                .SortByDescending(x => x.SuccessCodeGeneratedAtUtc)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<PasswordResetEntry?> GetBySuccessCodeOnlyAsync(string successCode)
+        {
+            var filter = Builders<PasswordResetEntry>.Filter.Eq(x => x.SuccessCode, successCode) &
                          Builders<PasswordResetEntry>.Filter.Eq(x => x.Active, 1);
 
             return await _collection.Find(filter)

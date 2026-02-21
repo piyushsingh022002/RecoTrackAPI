@@ -64,5 +64,15 @@ namespace RecoTrackApi.Repositories
 
             await _users.UpdateOneAsync(filter, update);
         }
+
+        public async Task UpdateIsMfaEnabledAsync(string userId, bool enabled)
+        {
+            var filter = Builders<User>.Filter.Eq(u => u.Id, userId);
+            var update = Builders<User>.Update
+                .Set(u => u.IsMfaEnabled, enabled)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow);
+
+            await _users.UpdateOneAsync(filter, update);
+        }
     }
 }
