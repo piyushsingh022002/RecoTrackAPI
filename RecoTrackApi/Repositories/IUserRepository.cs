@@ -10,5 +10,6 @@ namespace RecoTrackApi.Repositories
         Task UpdatePasswordHashAsync(string email, string passwordHash);
         Task UpdateAvatarUrlAsync(string userId, string? avatarUrl);
         Task UpdatePasswordAndClearOAuthFlagAsync(string email, string passwordHash);
+        Task UpdateIsMfaEnabledAsync(string userId, bool enabled);
     }
 }

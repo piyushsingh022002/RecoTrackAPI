@@ -37,6 +37,7 @@ namespace RecoTrackApi.Extensions
             services.AddScoped<RecoTrack.Application.Interfaces.ILogRepository, RecoTrack.Infrastructure.Services.LogRepository>();
             services.AddScoped<IEmailAuditRepository, EmailAuditRepository>();
             services.AddScoped<GoogleAuthService>();
+            services.AddScoped<ISupportRequestRepository, SupportRequestRepository>();
 
             // Object storage
             services.AddObjectStorageServices(configuration);

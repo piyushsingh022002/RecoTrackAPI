@@ -12,6 +12,7 @@ using RecoTrackApi.Services;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Authorization;
 
 namespace RecoTrackApi.Controllers
 {
@@ -70,6 +71,19 @@ namespace RecoTrackApi.Controllers
 
             var result = await _authService.LoginAsync(request);
 
+            // If MFA is required, the service returns a LoginResult with ErrorMessage == "MFA_REQUIRED"
+            if (result.ErrorMessage == "MFA_REQUIRED")
+            {
+                // enqueue MFA OTP email job using user's email and otp
+                if (!string.IsNullOrWhiteSpace(result.Email) && !string.IsNullOrWhiteSpace(result.Otp))
+                {
+                    _backgroundJob.Enqueue<MfaOtpEmailJob>(job => job.SendMfaOtpEmailAsync(result.Email, result.Username ?? string.Empty, result.Otp));
+                }
+
+                // Return200 with message MFA_REQUIRED and provide temp token in Token field to client
+                return Ok(new AuthResponseDto { Token = result.Token, Message = "MFA_REQUIRED" });
+            }
+
             if (!result.Success)
                 return Unauthorized(new AuthResponseDto { Message = result.ErrorMessage ?? "failure" });
 
@@ -78,6 +92,22 @@ namespace RecoTrackApi.Controllers
                 Token = result.Token,
                 Message = "success"
             });
+        }
+
+        [HttpPost("verify-mfa")]
+        public async Task<IActionResult> VerifyMfa([FromBody] VerifyMfaRequest? request)
+        {
+            if (request is null)
+                return BadRequest(new AuthResponseDto { Message = "Request body cannot be null" });
+
+            if (string.IsNullOrWhiteSpace(request.TempToken) || string.IsNullOrWhiteSpace(request.Otp))
+                return BadRequest(new AuthResponseDto { Message = "TempToken and Otp are required" });
+
+            var result = await _authService.VerifyMfaAsync(request.TempToken, request.Otp);
+            if (!result.Success)
+                return Unauthorized(new AuthResponseDto { Message = result.ErrorMessage ?? "failure" });
+
+            return Ok(new AuthResponseDto { Token = result.Token, Message = "success" });
         }
 
         [HttpPost("google")]
@@ -192,5 +222,42 @@ namespace RecoTrackApi.Controllers
 
             return Forbid();
         }
+
+        [Authorize]
+        [HttpPost("mfa/toggle")]
+        public async Task<IActionResult> ToggleMfa([FromBody] ToggleMfaRequest? request)
+        {
+            if (request is null)
+                return BadRequest(new { Message = "Request body cannot be null" });
+
+            if (_userRepository == null)
+                return StatusCode(501, new { Message = "User repository not configured." });
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized(new { Message = "Unable to resolve user from token." });
+
+            try
+            {
+                await _userRepository.UpdateIsMfaEnabledAsync(userId, request.Enabled);
+                return Ok(new { Message = "MFA setting updated.", IsMfaEnabled = request.Enabled });
+            }
+            catch (System.Exception)
+            {
+                // do not leak internal exception details
+                return StatusCode(500, new { Message = "Failed to update MFA setting." });
+            }
+        }
+    }
+
+    public class VerifyMfaRequest
+    {
+        public string TempToken { get; set; } = string.Empty;
+        public string Otp { get; set; } = string.Empty;
+    }
+
+    public class ToggleMfaRequest
+    {
+        public bool Enabled { get; set; }
     }
 }

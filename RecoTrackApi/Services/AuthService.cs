@@ -12,6 +12,8 @@ using System.Security.Cryptography;
 using System.Threading;
 using RecoTrack.Application.Models.Users;
 using RecoTrack.Application.Models.AuthProviders;
+using System.Threading.Tasks;
+using System;
 
 namespace RecoTrackApi.Services
 {
@@ -125,10 +127,64 @@ namespace RecoTrackApi.Services
             if (!VerifyPassword(request.Password, user.PasswordHash))
                 return LoginResult.Fail("Invalid credentials");
 
+            // If user has MFA enabled, generate OTP, save to password reset collection and return MFA_REQUIRED with a temporary token
+            if (user.IsMfaEnabled)
+            {
+                await _passwordResetRepository.DeactivateActiveOtpsAsync(user.Email);
+                var otp = GenerateNumericOtp();
+                var entry = new PasswordResetEntry
+                {
+                    Email = user.Email,
+                    Otp = otp,
+                    Active =1,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    ExpiresAtUtc = DateTime.UtcNow.AddMinutes(10),
+                    // We'll use SuccessCode field to store a temporary token the client will use to verify OTP
+                    SuccessCode = GenerateSuccessCode(),
+                    SuccessCodeGeneratedAtUtc = DateTime.UtcNow
+                };
+
+                await _passwordResetRepository.SaveAsync(entry);
+
+                // create a temp token (non-jwt random string) to return to client to reference this OTP flow
+                var tempToken = entry.SuccessCode;
+
+                // Return MFA_REQUIRED and supply temp token and also include otp so server jobs can send it
+                return RecoTrackApi.Models.LoginResult.MfaRequired(tempToken, user.Username, user.Email, otp);
+            }
+
             var token = GenerateJwtToken(user);
 
             _logger.LogInformation("User logged in: {Email}", user.Email);
 
+            return LoginResult.SuccessResult(token, user.Username, user.Email);
+        }
+
+        // New method to verify MFA otp using temp token (successCode) and return final JWT
+        public async Task<LoginResult> VerifyMfaAsync(string successCode, string otp)
+        {
+            if (string.IsNullOrWhiteSpace(successCode) || string.IsNullOrWhiteSpace(otp))
+                return LoginResult.Fail("Invalid MFA verification request.");
+
+            var entry = await _passwordResetRepository.GetBySuccessCodeOnlyAsync(successCode);
+            if (entry == null || entry.Active !=1)
+                return LoginResult.Fail("Invalid or inactive MFA token.");
+
+            if (entry.ExpiresAtUtc < DateTime.UtcNow)
+                return LoginResult.Fail("MFA token has expired.");
+
+            if (entry.Otp != otp)
+                return LoginResult.Fail("Invalid OTP.");
+
+            // lookup user and generate final jwt
+            var user = await _userRepository.GetByEmailAsync(entry.Email);
+            if (user == null)
+                return LoginResult.Fail("User not found.");
+
+            // mark otp as used
+            await _passwordResetRepository.DeactivateActiveOtpsAsync(user.Email);
+
+            var token = GenerateJwtToken(user);
             return LoginResult.SuccessResult(token, user.Username, user.Email);
         }
 

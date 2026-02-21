@@ -9,5 +9,6 @@ namespace RecoTrackApi.Repositories.Interfaces
         Task<PasswordResetEntry?> GetActiveUnexpiredEntryAsync(string email, string otp);
         Task SetSuccessCodeAsync(string email, string otp, string successCode);
         Task<PasswordResetEntry?> GetBySuccessCodeAsync(string email, string successCode);
+        Task<PasswordResetEntry?> GetBySuccessCodeOnlyAsync(string successCode);
     }
 }

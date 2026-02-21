@@ -65,6 +65,10 @@ namespace RecoTrack.Application.Models.Users
         [BsonElement("premium")]
         public PremiumFeature Premium { get; set; } = new();
 
+        // New MFA flag
+        [BsonElement("isMfaEnabled")]
+        public bool IsMfaEnabled { get; set; } = false;
+
 
         public User()
         {
