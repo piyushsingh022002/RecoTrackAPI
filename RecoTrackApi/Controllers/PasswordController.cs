@@ -9,6 +9,7 @@ using RecoTrackApi.DTOs;
 using System;
 using System.Net.Mail;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace RecoTrackApi.Controllers
 {
@@ -48,7 +49,18 @@ namespace RecoTrackApi.Controllers
 
                 if (!string.IsNullOrWhiteSpace(result.Otp))
                 {
-                    _backgroundJob.Enqueue<PasswordResetOtpEmailJob>(job => job.SendOtpEmailAsync(request.Email, result.Otp));
+                    // Prefer sending the JWT from Authorization header so the job can extract email from token.
+                    var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(authHeader))
+                    {
+                        _logger.LogInformation("Enqueuing OTP email job using Authorization header for email reset");
+                        _backgroundJob.Enqueue<PasswordResetOtpEmailJob>(job => job.SendOtpEmailAsync(authHeader, result.Otp));
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Enqueuing OTP email job using supplied email {Email}", request.Email);
+                        _backgroundJob.Enqueue<PasswordResetOtpEmailJob>(job => job.SendOtpEmailAsync(request.Email, result.Otp));
+                    }
                 }
 
                 return Ok(new
