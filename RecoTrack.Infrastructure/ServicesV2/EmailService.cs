@@ -248,5 +248,33 @@ namespace RecoTrack.Infrastructure.ServicesV2
 
             await SendEmailInternalAsync(toEmail, safeName, subject, html, new { otp = otpCode }, null, null, cancellationToken).ConfigureAwait(false);
         }
+
+        /// <summary>
+        /// Send notification email after a successful password change.
+        /// </summary>
+        public async Task SendPasswordChangedEmailAsync(string toEmail, string username, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail))
+            {
+                _logger.LogWarning("SendPasswordChangedEmailAsync called with empty toEmail");
+                return;
+            }
+
+            var safeName = string.IsNullOrWhiteSpace(username) ? toEmail.Split('@')[0] : username;
+            var subject = "Your RecoTrack password was changed";
+
+            var sb = new StringBuilder();
+            sb.Append($"<p style=\"font-size:14px;color:#555;\">Hi {System.Net.WebUtility.HtmlEncode(safeName)},</p>");
+            sb.Append("<p style=\"font-size:14px;color:#555;line-height:1.6;\">Your RecoTrack account password was updated successfully. If you made this change, no further action is needed.</p>");
+            // Use configured sender email as admin contact
+            var adminContactEmail = _settings?.SenderEmail ?? "support@recotrack.example";
+            sb.Append($"<p style=\"font-size:14px;color:#555;line-height:1.6;\">If you did not make this change, please contact the administrator immediately at <a href=\"mailto:{System.Net.WebUtility.HtmlEncode(adminContactEmail)}\">{System.Net.WebUtility.HtmlEncode(adminContactEmail)}</a>.</p>");
+            sb.Append("<p style=\"font-size:12px;color:#888;\">If you need help, reply to this email and we will assist you.</p>");
+
+            var bodyHtml = sb.ToString();
+            var html = CommonEmailTemplate.BuildHtml("Password Changed", bodyHtml, "Visit RecoTrack", "https://recotrackpiyushsingh.vercel.app/");
+
+            await SendEmailInternalAsync(toEmail, safeName, subject, html, null, null, null, cancellationToken).ConfigureAwait(false);
+        }
     }
 }
