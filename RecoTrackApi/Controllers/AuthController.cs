@@ -13,6 +13,10 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
+using System;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 
 namespace RecoTrackApi.Controllers
 {
@@ -25,19 +29,72 @@ namespace RecoTrackApi.Controllers
         private readonly ILogRepository _logRepository;
         private readonly GoogleAuthService? _googleAuthService;
         private readonly IUserRepository? _userRepository;
+        private readonly IRefreshTokenRepository? _refreshTokenRepository;
 
         public AuthController(
             IAuthService authService,
             ILogRepository logRepository,
             IBackgroundJobClient backgroundJob,
             GoogleAuthService? googleAuthService = null,
-            IUserRepository? userRepository = null)
+            IUserRepository? userRepository = null,
+            IRefreshTokenRepository? refreshTokenRepository = null)
         {
             _authService = authService;
             _logRepository = logRepository;
             _backgroundJob = backgroundJob;
             _googleAuthService = googleAuthService;
             _userRepository = userRepository;
+            _refreshTokenRepository = refreshTokenRepository;
+        }
+
+        private void SetRefreshCookie(string refreshToken, DateTime expires)
+        {
+            var cookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                Expires = expires,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
+                Path = "/api/auth/refresh"
+            };
+            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+        }
+
+        private void ClearRefreshCookie()
+        {
+            Response.Cookies.Delete("refreshToken", new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
+                Path = "/api/auth/refresh"
+            });
+        }
+
+        private static string ComputeSha256Hash(string raw)
+        {
+            using var sha = SHA256.Create();
+            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(raw));
+            return BitConverter.ToString(bytes).Replace("-", string.Empty).ToLowerInvariant();
+        }
+
+        private async Task<(string token, DateTime expires, string hash)?> GenerateAndSaveRefreshTokenAsync(string userId)
+        {
+            if (_refreshTokenRepository == null)
+                return null;
+            var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var expires = DateTime.UtcNow.AddDays(7);
+            var hash = ComputeSha256Hash(refreshToken);
+            var entry = new RefreshTokenEntry
+            {
+                UserId = userId,
+                TokenHash = hash,
+                CreatedAtUtc = DateTime.UtcNow,
+                ExpiresAtUtc = expires,
+                Revoked = false
+            };
+            await _refreshTokenRepository.SaveAsync(entry);
+            return (refreshToken, expires, hash);
         }
 
         [HttpPost("register")]
@@ -54,6 +111,16 @@ namespace RecoTrackApi.Controllers
             if (!string.IsNullOrWhiteSpace(result.Token))
             {
                 _backgroundJob.Enqueue<WelcomeEmailJob>(job => job.SendEmailAsync(result.Token, "WELCOME"));
+            }
+
+            // generate and set refresh token cookie if repo available
+            if (_refreshTokenRepository != null && result.User != null)
+            {
+                var maybe = await GenerateAndSaveRefreshTokenAsync(result.User.Id);
+                if (maybe.HasValue)
+                {
+                    SetRefreshCookie(maybe.Value.token, maybe.Value.expires);
+                }
             }
 
             return Ok(new AuthResponseDto
@@ -87,6 +154,23 @@ namespace RecoTrackApi.Controllers
             if (!result.Success)
                 return Unauthorized(new AuthResponseDto { Message = result.ErrorMessage ?? "failure" });
 
+            // set refresh cookie if repo available and user id can be resolved from token
+            if (_refreshTokenRepository != null)
+            {
+                // extract user id claim from jwt token (result.Token)
+                var handler = new JwtSecurityTokenHandler();
+                var jwt = handler.ReadJwtToken(result.Token);
+                var userId = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrWhiteSpace(userId))
+                {
+                    var maybe = await GenerateAndSaveRefreshTokenAsync(userId);
+                    if (maybe.HasValue)
+                    {
+                        SetRefreshCookie(maybe.Value.token, maybe.Value.expires);
+                    }
+                }
+            }
+
             return Ok(new AuthResponseDto
             {
                 Token = result.Token,
@@ -107,7 +191,84 @@ namespace RecoTrackApi.Controllers
             if (!result.Success)
                 return Unauthorized(new AuthResponseDto { Message = result.ErrorMessage ?? "failure" });
 
+            if (_refreshTokenRepository != null)
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var jwt = handler.ReadJwtToken(result.Token);
+                var userId = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrWhiteSpace(userId))
+                {
+                    var maybe = await GenerateAndSaveRefreshTokenAsync(userId);
+                    if (maybe.HasValue)
+                    {
+                        SetRefreshCookie(maybe.Value.token, maybe.Value.expires);
+                    }
+                }
+            }
+
             return Ok(new AuthResponseDto { Token = result.Token, Message = "success" });
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh()
+        {
+            if (_refreshTokenRepository == null || _userRepository == null)
+            {
+                return StatusCode(501, new { Message = "Refresh token functionality is not configured." });
+            }
+
+            var refreshToken = Request.Cookies["refreshToken"] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return Unauthorized(new { Message = "Refresh token missing." });
+
+            var hash = ComputeSha256Hash(refreshToken);
+            var entry = await _refreshTokenRepository.GetByTokenHashAsync(hash);
+            if (entry == null || entry.Revoked || entry.ExpiresAtUtc < DateTime.UtcNow)
+            {
+                ClearRefreshCookie();
+                return Unauthorized(new { Message = "Invalid refresh token." });
+            }
+
+            var user = await _userRepository.GetByIdAsync(entry.UserId);
+            if (user == null)
+            {
+                ClearRefreshCookie();
+                return Unauthorized(new { Message = "User not found for refresh token." });
+            }
+
+            var newJwt = _authService.GenerateJwtToken(user);
+
+            // rotate refresh token
+            var newTokenInfo = await GenerateAndSaveRefreshTokenAsync(user.Id);
+            if (!newTokenInfo.HasValue)
+            {
+                return StatusCode(500, new { Message = "Failed to generate refresh token." });
+            }
+
+            await _refreshTokenRepository.RevokeAsync(entry.TokenHash, newTokenInfo.Value.hash);
+            SetRefreshCookie(newTokenInfo.Value.token, newTokenInfo.Value.expires);
+
+            return Ok(new { Token = newJwt });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            if (_refreshTokenRepository == null)
+            {
+                ClearRefreshCookie();
+                return Ok(new { Message = "Logged out" });
+            }
+
+            var refreshToken = Request.Cookies["refreshToken"] ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(refreshToken))
+            {
+                var hash = ComputeSha256Hash(refreshToken);
+                await _refreshTokenRepository.RevokeAsync(hash, null);
+            }
+
+            ClearRefreshCookie();
+            return Ok(new { Message = "Logged out" });
         }
 
         [HttpPost("google")]
@@ -182,6 +343,13 @@ namespace RecoTrackApi.Controllers
 
                 // generate JWT for the newly created user and return it
                 var token = _authService.GenerateJwtToken(user);
+                // generate refresh token via repo if available
+                if (_refreshTokenRepository != null)
+                {
+                    var maybe = await GenerateAndSaveRefreshTokenAsync(user.Id);
+                    if (maybe.HasValue)
+                        SetRefreshCookie(maybe.Value.token, maybe.Value.expires);
+                }
 
                 return Ok(new AuthResponseDto
                 {
@@ -199,6 +367,12 @@ namespace RecoTrackApi.Controllers
 
                 // existing user -> generate JWT using existing auth service
                 var token = _authService.GenerateJwtToken(user);
+                if (_refreshTokenRepository != null)
+                {
+                    var maybe = await GenerateAndSaveRefreshTokenAsync(user.Id);
+                    if (maybe.HasValue)
+                        SetRefreshCookie(maybe.Value.token, maybe.Value.expires);
+                }
 
                 return Ok(new AuthResponseDto
                 {
@@ -233,13 +407,30 @@ namespace RecoTrackApi.Controllers
             if (_userRepository == null)
                 return StatusCode(501, new { Message = "User repository not configured." });
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(userId))
+            // Try several claim types to resolve the user id
+            var claimValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                 ?? User.FindFirst("sub")?.Value
+                 ?? User.FindFirst(ClaimTypes.Email)?.Value
+                 ?? User.FindFirst(ClaimTypes.Name)?.Value;
+
+            if (string.IsNullOrWhiteSpace(claimValue))
                 return Unauthorized(new { Message = "Unable to resolve user from token." });
+
+            string? userId = claimValue;
+
+            // If claim looks like an email, resolve actual user id from repository
+            if (claimValue.Contains("@"))
+            {
+                var user = await _userRepository.GetByEmailAsync(claimValue);
+                if (user == null)
+                    return Unauthorized(new { Message = "User not found from token claim." });
+
+                userId = user.Id;
+            }
 
             try
             {
-                await _userRepository.UpdateIsMfaEnabledAsync(userId, request.Enabled);
+                await _userRepository.UpdateIsMfaEnabledAsync(userId!, request.Enabled);
                 return Ok(new { Message = "MFA setting updated.", IsMfaEnabled = request.Enabled });
             }
             catch (System.Exception)

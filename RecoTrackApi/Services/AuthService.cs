@@ -14,6 +14,7 @@ using RecoTrack.Application.Models.Users;
 using RecoTrack.Application.Models.AuthProviders;
 using System.Threading.Tasks;
 using System;
+using System.Linq;
 
 namespace RecoTrackApi.Services
 {
@@ -22,25 +23,35 @@ namespace RecoTrackApi.Services
         private readonly string _jwtKey;
         private readonly string _issuer;
         private readonly string _audience;
+        private readonly int _jwtExpiryMinutes;
         private readonly IUserRepository _userRepository;
         private readonly IPasswordResetRepository _passwordResetRepository;
         private readonly ISecurityQuestionRepository _securityQuestionRepository;
         private readonly ILogger<AuthService> _logger;
+        private readonly IRefreshTokenRepository? _refreshTokenRepository;
 
         public AuthService(IConfiguration configuration,
             IUserRepository userRepository,
             IPasswordResetRepository passwordResetRepository,
             ISecurityQuestionRepository securityQuestionRepository,
-            ILogger<AuthService> logger)
+            ILogger<AuthService> logger,
+            IRefreshTokenRepository? refreshTokenRepository = null)
         {
             _jwtKey = configuration["JwtSettings:SecretKey"]!;
             _issuer = configuration["JwtSettings:Issuer"] ?? "RecoTrackAPI - Service";
             _audience = configuration["JwtSettings:Audience"] ?? "RecoTrackWeb - Client";
 
+            // Read expiry minutes from configuration; default to20 if missing or invalid
+            if (!int.TryParse(configuration["JwtSettings:ExpiryMinutes"], out _jwtExpiryMinutes))
+            {
+                _jwtExpiryMinutes =20; // default to20 minutes
+            }
+
             _userRepository = userRepository;
             _passwordResetRepository = passwordResetRepository;
             _securityQuestionRepository = securityQuestionRepository;
             _logger = logger;
+            _refreshTokenRepository = refreshTokenRepository;
         }
 
         public async Task<RegisterResult> RegisterAsync(RegisterRequest request)
@@ -112,10 +123,12 @@ namespace RecoTrackApi.Services
 
             var token = GenerateJwtToken(user);
 
+            // generate refresh token for new user
+            var (refreshToken, refreshExpires) = await GenerateRefreshTokenAsync(user.Id);
+
             _logger.LogInformation("User registered with ID: {UserId}", user.Id);
 
-          
-            return RegisterResult.Ok(token);
+            return RegisterResult.Ok(token, refreshToken, refreshExpires);
         }
 
         public async Task<LoginResult> LoginAsync(LoginRequest request)
@@ -154,10 +167,11 @@ namespace RecoTrackApi.Services
             }
 
             var token = GenerateJwtToken(user);
+            var (refreshToken, refreshExpires) = await GenerateRefreshTokenAsync(user.Id);
 
             _logger.LogInformation("User logged in: {Email}", user.Email);
 
-            return LoginResult.SuccessResult(token, user.Username, user.Email);
+            return LoginResult.SuccessResult(token, user.Username, user.Email, refreshToken, refreshExpires);
         }
 
         // New method to verify MFA otp using temp token (successCode) and return final JWT
@@ -185,7 +199,8 @@ namespace RecoTrackApi.Services
             await _passwordResetRepository.DeactivateActiveOtpsAsync(user.Email);
 
             var token = GenerateJwtToken(user);
-            return LoginResult.SuccessResult(token, user.Username, user.Email);
+            var (refreshToken, refreshExpires) = await GenerateRefreshTokenAsync(user.Id);
+            return LoginResult.SuccessResult(token, user.Username, user.Email, refreshToken, refreshExpires);
         }
 
         public async Task<PasswordOtpResult> SendPasswordResetOtpAsync(string email, CancellationToken cancellationToken = default)
@@ -286,7 +301,8 @@ namespace RecoTrackApi.Services
             await _passwordResetRepository.DeactivateActiveOtpsAsync(request.Email);
 
             var token = GenerateJwtToken(user);
-            return LoginResult.SuccessResult(token, user.Username, user.Email);
+            var (refreshToken, refreshExpires) = await GenerateRefreshTokenAsync(user.Id);
+            return LoginResult.SuccessResult(token, user.Username, user.Email, refreshToken, refreshExpires);
         }
 
         public string HashPassword(string password)
@@ -315,14 +331,76 @@ namespace RecoTrackApi.Services
                 issuer: _issuer,
                 audience: _audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
+                expires: DateTime.UtcNow.AddMinutes(_jwtExpiryMinutes),
                 signingCredentials: creds
                 );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        private static string GenerateNumericOtp(int length = 6)
+        // Refresh token helpers
+        public async Task<(string refreshToken, DateTime expiresAt)> GenerateRefreshTokenAsync(string userId)
+        {
+            var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var expires = DateTime.UtcNow.AddDays(7);
+            var hash = ComputeSha256Hash(refreshToken);
+            var entry = new RefreshTokenEntry
+            {
+                UserId = userId,
+                TokenHash = hash,
+                CreatedAtUtc = DateTime.UtcNow,
+                ExpiresAtUtc = expires,
+                Revoked = false
+            };
+            if (_refreshTokenRepository != null)
+            {
+                await _refreshTokenRepository.SaveAsync(entry);
+            }
+            return (refreshToken, expires);
+        }
+
+        private static string ComputeSha256Hash(string raw)
+        {
+            using var sha = SHA256.Create();
+            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(raw));
+            return BitConverter.ToString(bytes).Replace("-", string.Empty).ToLowerInvariant();
+        }
+
+        public async Task<(bool success, string? newJwt, string? newRefreshToken)> RefreshJwtAsync(string refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return (false, null, null);
+            if (_refreshTokenRepository == null)
+                return (false, null, null);
+            var hash = ComputeSha256Hash(refreshToken);
+            var entry = await _refreshTokenRepository.GetByTokenHashAsync(hash);
+            if (entry == null || entry.Revoked || entry.ExpiresAtUtc < DateTime.UtcNow)
+                return (false, null, null);
+
+            // valid -> rotate: generate new refresh token, revoke old one pointing to new
+            var user = await _userRepository.GetByIdAsync(entry.UserId);
+            if (user == null)
+                return (false, null, null);
+
+            var newJwt = GenerateJwtToken(user);
+            var (newRefreshToken, newExpires) = await GenerateRefreshTokenAsync(user.Id);
+            var newHash = ComputeSha256Hash(newRefreshToken);
+            await _refreshTokenRepository.RevokeAsync(entry.TokenHash, newHash);
+
+            return (true, newJwt, newRefreshToken);
+        }
+
+        public async Task RevokeRefreshTokenAsync(string refreshToken)
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
+                return;
+            if (_refreshTokenRepository == null)
+                return;
+            var hash = ComputeSha256Hash(refreshToken);
+            await _refreshTokenRepository.RevokeAsync(hash, null);
+        }
+
+        private static string GenerateNumericOtp(int length =6)
         {
             var maxValue = (int)Math.Pow(10, length);
             var number = RandomNumberGenerator.GetInt32(0, maxValue);

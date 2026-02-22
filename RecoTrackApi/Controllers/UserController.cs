@@ -67,7 +67,8 @@ namespace RecoTrackApi.Controllers
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt,
                 Profile = user.Profile,
-                AuthProviders = user.AuthProviders
+                AuthProviders = user.AuthProviders,
+                IsMfaEnabled = user.IsMfaEnabled
             };
 
             return Ok(responseUser);
