@@ -38,6 +38,7 @@ namespace RecoTrackApi.Extensions
             services.AddScoped<IEmailAuditRepository, EmailAuditRepository>();
             services.AddScoped<GoogleAuthService>();
             services.AddScoped<ISupportRequestRepository, SupportRequestRepository>();
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
             // Object storage
             services.AddObjectStorageServices(configuration);

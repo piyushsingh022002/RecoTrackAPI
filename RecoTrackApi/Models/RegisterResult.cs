@@ -1,4 +1,5 @@
 ﻿using RecoTrack.Application.Models.Users;
+using System;
 
 namespace RecoTrackApi.Models
 {
@@ -9,6 +10,9 @@ namespace RecoTrackApi.Models
         public string? Token { get; private set; }
         public User User { get; private set; } = null!;
 
+        // New refresh token fields
+        public string? RefreshToken { get; private set; }
+        public DateTime? RefreshExpiresAtUtc { get; private set; }
 
         private RegisterResult() { }
         private RegisterResult(bool success, string? errorMessage = null)
@@ -17,16 +21,15 @@ namespace RecoTrackApi.Models
             ErrorMessage = errorMessage;
         }
 
-        //public static RegisterResult Fail(string message) => new RegisterResult(false, message);
-        //public static RegisterResult Ok() => new RegisterResult(true);
-
-        public static RegisterResult Ok( string token)
+        public static RegisterResult Ok(string token, string? refreshToken = null, DateTime? refreshExpires = null)
         {
             return new RegisterResult
             {
                 Success = true,
                 ErrorMessage = "",
-                Token = token
+                Token = token,
+                RefreshToken = refreshToken,
+                RefreshExpiresAtUtc = refreshExpires
             };
         }
 
