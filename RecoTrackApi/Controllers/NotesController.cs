@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using RecoTrack.Application.Models.Notes;
 using RecoTrackApi.Services.Interfaces;
 using System.Security.Claims;
+using RecoTrackApi.DTOs;
 
 namespace RecoTrackApi.Controllers
 {
@@ -35,7 +36,7 @@ namespace RecoTrackApi.Controllers
         private string? GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         [HttpGet]
-        public async Task<IActionResult> GetNotes()
+        public async Task<IActionResult> GetNotes([FromQuery] string? filter, [FromQuery] string? search)
         {
             var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
@@ -44,11 +45,21 @@ namespace RecoTrackApi.Controllers
                 return Unauthorized();
             }
 
-            _logger.LogInformation("GetNotes requested by UserId {UserId}", userId);
+            _logger.LogInformation("GetNotes requested by UserId {UserId} with filter {Filter} and search {Search}", userId, filter, search);
 
             try
             {
-                var notes = await _noteService.GetNotesAsync(userId);
+                List<Note> notes;
+                // If caller didn't provide filter or search, call the single-arg service method so breakpoints there are hit
+                if (string.IsNullOrWhiteSpace(filter) && string.IsNullOrWhiteSpace(search))
+                {
+                    notes = await _noteService.GetNotesAsync(userId);
+                }
+                else
+                {
+                    notes = await _noteService.GetNotesAsync(userId, filter, search);
+                }
+
                 _logger.LogDebug("GetNotes returned {Count} notes for UserId {UserId}", notes.Count, userId);
                 return Ok(notes);
             }
@@ -174,56 +185,54 @@ namespace RecoTrackApi.Controllers
 
             try
             {
-                // Use service helper to create or just record activity
-                if (_noteService is RecoTrackApi.Services.NoteService concrete)
+                // Persist note when SaveOption == SAVE, otherwise only record activity
+                if (string.Equals(saveOption, "SAVE", StringComparison.OrdinalIgnoreCase))
                 {
-                    var noteRef = await concrete.CreateOrRecordAsync(note, saveOption, eventType, userId);
+                    await _noteService.CreateNoteAsync(note);
+                }
+                else
+                {
+                    // JUST_DOWNLOAD or other: do not persist, but record activity
+                    await _noteService.CreateOrRecordAsync(note, saveOption, eventType, userId);
+                }
 
-                    // If IMPORT_EMAIL and SaveOption JUST_DOWNLOAD or SAVE, send email via background job
-                    if (string.Equals(eventType, "IMPORT_EMAIL", System.StringComparison.OrdinalIgnoreCase))
+                // If IMPORT_EMAIL and SaveOption JUST_DOWNLOAD or SAVE, send email via background job
+                if (string.Equals(eventType, "IMPORT_EMAIL", StringComparison.OrdinalIgnoreCase))
+                {
+                    var authHeader = Request.Headers["Authorization"].ToString();
+                    string? userJwt = null;
+                    if (!string.IsNullOrWhiteSpace(authHeader))
                     {
-                        // Resolve JWT from Authorization header (if present)
-                        var authHeader = Request.Headers["Authorization"].ToString();
-                        string? userJwt = null;
-                        if (!string.IsNullOrWhiteSpace(authHeader))
+                        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                         {
-                            if (authHeader.StartsWith("Bearer ", System.StringComparison.OrdinalIgnoreCase))
-                            {
-                                userJwt = authHeader[7..].Trim();
-                            }
-                            else
-                            {
-                                userJwt = authHeader;
-                            }
-                        }
-
-                        var externalEmail = noteDto.ExternalEmail?.Trim();
-
-                        // Enqueue the import note job. Job will resolve fallback to user's email from JWT if externalEmail is null/empty.
-                        if (_backgroundJob != null)
-                        {
-                            try
-                            {
-                                _backgroundJob.Enqueue<RecoTrackApi.Jobs.ImportNoteJob>(job => job.SendImportNoteAsync(userJwt, noteDto, "IMPORT_EMAIL", externalEmail));
-                                _logger.LogInformation("Enqueued ImportNoteJob for UserId {UserId} to email {Email}", userId, externalEmail ?? "(from JWT)");
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Failed to enqueue ImportNoteJob for UserId {UserId}", userId);
-                            }
+                            userJwt = authHeader[7..].Trim();
                         }
                         else
                         {
-                            _logger.LogWarning("Background job client is not configured; import email will not be queued for UserId {UserId}", userId);
+                            userJwt = authHeader;
                         }
                     }
 
-                    // JUST_DOWNLOAD: return NoteRefId so frontend can track the download
-                    return Ok(note);
+                    var externalEmail = noteDto.ExternalEmail?.Trim();
+
+                    if (_backgroundJob != null)
+                    {
+                        try
+                        {
+                            _backgroundJob.Enqueue<RecoTrackApi.Jobs.ImportNoteJob>(job => job.SendImportNoteAsync(userJwt, noteDto, "IMPORT_EMAIL", externalEmail));
+                            _logger.LogInformation("Enqueued ImportNoteJob for UserId {UserId} to email {Email}", userId, externalEmail ?? "(from JWT)");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to enqueue ImportNoteJob for UserId {UserId}", userId);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Background job client is not configured; import email will not be queued for UserId {UserId}", userId);
+                    }
                 }
 
-                // Fallback: use interface method (create and return note)
-                await _noteService.CreateNoteAsync(note);
                 return Ok(note);
             }
             catch (ArgumentException ex)
@@ -258,6 +267,7 @@ namespace RecoTrackApi.Controllers
 
             try
             {
+                // Call service overload that uses null presentFields so it updates only non-null properties
                 var success = await _noteService.UpdateNoteAsync(id, updateDto, userId);
 
                 if (!success)
@@ -266,10 +276,6 @@ namespace RecoTrackApi.Controllers
                     return NotFound();
                 }
 
-                // Send notification via SignalR and store in DB
-               // var message = $"{updateDto.Title} is modified at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
-               //var notifications = await _notificationService.SendNotificationAsync(userId, message);
-               // await _notificationHub.Clients.User(userId).SendCoreAsync("ReceiveNotification", new object[] { notifications });
                 return NoContent();
             }
             catch (ArgumentException ex)
@@ -443,6 +449,123 @@ namespace RecoTrackApi.Controllers
             {
                 _logger.LogError(ex, "Unhandled error in GetAllImportantNotes. UserId {UserId}", userId);
                 return StatusCode(500, "An unexpected error occurred while retrieving important notes.");
+            }
+        }
+
+        [HttpGet("shared-with-me")]
+        public async Task<IActionResult> GetNotesSharedWithMe()
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                _logger.LogInformation("Unauthorized request to GetNotesSharedWithMe");
+                return Unauthorized();
+            }
+
+            _logger.LogInformation("GetNotesSharedWithMe requested by UserId {UserId}", userId);
+            try
+            {
+                var shared = await _noteService.GetNotesSharedWithMeAsync(userId);
+                return Ok(new ApiResponse<List<SharedNoteDto>> { Success = true, Data = shared, Message = "Shared notes fetched successfully." });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in GetNotesSharedWithMe for UserId {UserId}", userId);
+                return BadRequest(new ApiResponse<object> { Success = false, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error in GetNotesSharedWithMe for UserId {UserId}", userId);
+                return StatusCode(500, new ApiResponse<object> { Success = false, Message = "An unexpected error occurred." });
+            }
+        }
+
+        [HttpPost("{id}/share")]
+        public async Task<IActionResult> ShareNote(string id, [FromBody] ShareNoteRequestDto request)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                _logger.LogInformation("Unauthorized request to ShareNote");
+                return Unauthorized();
+            }
+
+            if (request == null)
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Request body is required." });
+
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Note ID is required." });
+
+            // Validate permission
+            var perm = request.Permission?.Trim().ToUpperInvariant();
+            if (perm != "VIEW" && perm != "EDIT")
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Permission must be VIEW or EDIT." });
+
+            try
+            {
+                bool shared = false;
+
+                // If emails provided, use email-based sharing (service resolves emails to users)
+                if (!string.IsNullOrWhiteSpace(request.SharedWithEmails))
+                {
+                    shared = await _noteService.ShareNoteByEmailsAsync(id, userId, request.SharedWithEmails, perm);
+                }
+                else if (!string.IsNullOrWhiteSpace(request.SharedWithUserId))
+                {
+                    shared = await _noteService.ShareNoteAsync(id, userId, request.SharedWithUserId, perm);
+                }
+                else
+                {
+                    return BadRequest(new ApiResponse<object> { Success = false, Message = "Either SharedWithUserId or SharedWithEmails must be provided." });
+                }
+
+                if (!shared)
+                    return NotFound(new ApiResponse<object> { Success = false, Message = "Note not found or you are not the owner / recipients not resolved." });
+
+                return Ok(new ApiResponse<object> { Success = true, Message = "Note shared successfully." });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in ShareNote. UserId {UserId}, NoteId {NoteId}", userId, id);
+                return BadRequest(new ApiResponse<object> { Success = false, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error in ShareNote. UserId {UserId}, NoteId {NoteId}", userId, id);
+                return StatusCode(500, new ApiResponse<object> { Success = false, Message = "An unexpected error occurred." });
+            }
+        }
+
+        [HttpDelete("{id}/share/{sharedWithUserId}")]
+        public async Task<IActionResult> UnshareNote(string id, string sharedWithUserId)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                _logger.LogInformation("Unauthorized request to UnshareNote");
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(sharedWithUserId))
+                return BadRequest(new ApiResponse<object> { Success = false, Message = "Note ID and sharedWithUserId are required." });
+
+            try
+            {
+                var removed = await _noteService.UnshareNoteAsync(id, userId, sharedWithUserId);
+                if (!removed)
+                    return NotFound(new ApiResponse<object> { Success = false, Message = "Share relationship not found or you're not owner." });
+
+                return Ok(new ApiResponse<object> { Success = true, Message = "Note unshared successfully." });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid input in UnshareNote. UserId {UserId}, NoteId {NoteId}", userId, id);
+                return BadRequest(new ApiResponse<object> { Success = false, Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unhandled error in UnshareNote. UserId {UserId}, NoteId {NoteId}", userId, id);
+                return StatusCode(500, new ApiResponse<object> { Success = false, Message = "An unexpected error occurred." });
             }
         }
 

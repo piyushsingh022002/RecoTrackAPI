@@ -49,13 +49,16 @@ namespace RecoTrackApi.Controllers
 
         private void SetRefreshCookie(string refreshToken, DateTime expires)
         {
+            // Use Path = "/" so cookie is sent to refresh endpoint and other auth endpoints
+            // Set SameSite=None so browsers will include cookie for cross-site requests when using credentials
+            // Set Secure based on request scheme (require HTTPS in production)
             var cookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = Request.IsHttps,
                 Expires = expires,
-                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
-                Path = "/api/auth/refresh"
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
+                Path = "/"
             };
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
@@ -65,9 +68,9 @@ namespace RecoTrackApi.Controllers
             Response.Cookies.Delete("refreshToken", new Microsoft.AspNetCore.Http.CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
-                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
-                Path = "/api/auth/refresh"
+                Secure = Request.IsHttps,
+                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
+                Path = "/"
             });
         }
 
@@ -217,7 +220,16 @@ namespace RecoTrackApi.Controllers
                 return StatusCode(501, new { Message = "Refresh token functionality is not configured." });
             }
 
+            // Try cookie first, then fallback to X-Refresh-Token header
             var refreshToken = Request.Cookies["refreshToken"] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                if (Request.Headers.TryGetValue("X-Refresh-Token", out var headerVals))
+                {
+                    refreshToken = headerVals.FirstOrDefault() ?? string.Empty;
+                }
+            }
+
             if (string.IsNullOrWhiteSpace(refreshToken))
                 return Unauthorized(new { Message = "Refresh token missing." });
 

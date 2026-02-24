@@ -56,7 +56,7 @@ namespace RecoTrackApi.ControllersTest
             _controller.ControllerContext = new ControllerContext { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() };
 
             // Act
-            var result = await _controller.GetNotes();
+            var result = await _controller.GetNotes(null, null);
 
             // Assert
             Assert.IsType<UnauthorizedResult>(result);
@@ -68,11 +68,11 @@ namespace RecoTrackApi.ControllersTest
             // Arrange
             var userId = "user123";
             var notes = new List<Note> { new Note { Id = "1", UserId = userId, Title = "Test Note", Content = "Content" } };
-            _noteServiceMock.Setup(s => s.GetNotesAsync(userId)).ReturnsAsync(notes);
+            _noteServiceMock.Setup(s => s.GetNotesAsync(userId, null, null)).ReturnsAsync(notes);
             SetUser(userId);
 
             // Act
-            var result = await _controller.GetNotes();
+            var result = await _controller.GetNotes(null, null);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
