@@ -68,7 +68,9 @@ namespace RecoTrackApi.ControllersTest
             // Arrange
             var userId = "user123";
             var notes = new List<Note> { new Note { Id = "1", UserId = userId, Title = "Test Note", Content = "Content" } };
-            _noteServiceMock.Setup(s => s.GetNotesAsync(userId, null, null)).ReturnsAsync(notes);
+            // Controller calls the single-argument overload when both filter and search are null/whitespace,
+            // so mock that overload instead of the3-argument overload.
+            _noteServiceMock.Setup(s => s.GetNotesAsync(userId)).ReturnsAsync(notes);
             SetUser(userId);
 
             // Act
