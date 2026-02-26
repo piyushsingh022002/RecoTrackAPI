@@ -1,19 +1,25 @@
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using RecoTrack.Application.Models.Notes;
 using RecoTrackApi.DTOs;
 using RecoTrackApi.Models;
 using RecoTrackApi.Repositories.Interfaces;
+using System.Text.RegularExpressions;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace RecoTrackApi.Repositories
 {
     public class NoteRepository : INoteRepository
     {
         private readonly IMongoCollection<Note> _notes;
+        private readonly IMongoCollection<NoteShare> _noteShares;
 
         public NoteRepository(IMongoDatabase database)
         {
             _notes = database.GetCollection<Note>("Notes");
+            _noteShares = database.GetCollection<NoteShare>("NoteShares");
             EnsureIndexes();
         }
 
@@ -32,6 +38,15 @@ namespace RecoTrackApi.Repositories
                     .Descending(n => n.CreatedAt));
 
             _notes.Indexes.CreateMany(new[] { activeIndex, deletedIndex });
+
+            // Indexes for NoteShare to optimize lookups by note and recipient
+            var shareIndex1 = new CreateIndexModel<NoteShare>(Builders<NoteShare>.IndexKeys.Ascending(s => s.NoteId));
+            var shareIndex2 = new CreateIndexModel<NoteShare>(Builders<NoteShare>.IndexKeys.Ascending(s => s.SharedWithUserId));
+            var uniqueShare = new CreateIndexModel<NoteShare>(Builders<NoteShare>.IndexKeys
+                .Ascending(s => s.NoteId)
+                .Ascending(s => s.SharedWithUserId), new CreateIndexOptions { Unique = true });
+
+            _noteShares.Indexes.CreateMany(new[] { shareIndex1, shareIndex2, uniqueShare });
         }
 
         public async Task<List<Note>> GetNotesByUserIdAsync(string userId)
@@ -45,6 +60,58 @@ namespace RecoTrackApi.Repositories
                 .Find(filter)
                 .SortByDescending(n => n.CreatedAt)
                 .ToListAsync();
+        }
+
+        // Overload supporting optional filter and search in single optimized query
+        public async Task<List<Note>> GetNotesByUserIdAsync(string userId, string? filter, string? search)
+        {
+            // Build dynamic filter
+            var filters = new List<FilterDefinition<Note>>();
+            filters.Add(Builders<Note>.Filter.Eq(n => n.UserId, userId));
+            filters.Add(Builders<Note>.Filter.Eq(n => n.DeletedAt, null));
+
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                // Normalize incoming filter values
+                var f = filter.Trim().ToLowerInvariant();
+                if (f == "important")
+                {
+                    // Labels contain "Important" (note repository stores labels as title-case)
+                    filters.Add(Builders<Note>.Filter.AnyEq(n => n.Labels, "Important"));
+                }
+                else if (f == "pinned")
+                {
+                    filters.Add(Builders<Note>.Filter.Ne(n => n.PinnedAt, null));
+                }
+                else if (f == "favourite" || f == "favorite")
+                {
+                    filters.Add(Builders<Note>.Filter.AnyEq(n => n.Labels, "Favourite"));
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search.Trim();
+                // Case-insensitive partial match on Title or Content
+                // Use regex with options for case-insensitive
+                var regex = new BsonRegularExpression($"{RegexEscape(s)}", "i");
+                var titleFilter = Builders<Note>.Filter.Regex(n => n.Title, regex);
+                var contentFilter = Builders<Note>.Filter.Regex(n => n.Content, regex);
+                filters.Add(Builders<Note>.Filter.Or(titleFilter, contentFilter));
+            }
+
+            var finalFilter = Builders<Note>.Filter.And(filters);
+
+            return await _notes
+                .Find(finalFilter)
+                .SortByDescending(n => n.CreatedAt)
+                .ToListAsync();
+        }
+
+        private static string RegexEscape(string input)
+        {
+            // Minimal escape for regex special chars
+            return Regex.Escape(input);
         }
 
         public async Task<List<Note>> GetDeletedNotesByUserIdAsync(string userId)
@@ -75,6 +142,20 @@ namespace RecoTrackApi.Repositories
 
         public async Task CreateNoteAsync(Note note)
         {
+            if (note == null)
+                throw new ArgumentNullException(nameof(note));
+
+            // Ensure Id is set so caller can read it after insert (string-representation of ObjectId)
+            if (string.IsNullOrWhiteSpace(note.Id))
+            {
+                note.Id = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
+            }
+
+            // Ensure timestamps
+            if (note.CreatedAt == default) note.CreatedAt = DateTime.UtcNow;
+            note.UpdatedAt = DateTime.UtcNow;
+            note.DeletedAt ??= null;
+
             await _notes.InsertOneAsync(note);
         }
 
@@ -85,7 +166,7 @@ namespace RecoTrackApi.Repositories
 
             var result = await _notes.ReplaceOneAsync(n => n.Id == note.Id && n.UserId == note.UserId && n.DeletedAt == null,note);
 
-            return result.ModifiedCount > 0;
+            return result.ModifiedCount >0;
         }
 
         public async Task<bool> DeleteNoteAsync(string id, string userId)
@@ -99,7 +180,7 @@ namespace RecoTrackApi.Repositories
                 update
             );
 
-            return result.ModifiedCount > 0;
+            return result.ModifiedCount >0;
         }
 
         public async Task<bool> RestoreNoteAsync(string id, string userId)
@@ -113,7 +194,7 @@ namespace RecoTrackApi.Repositories
                 update
             );
 
-            return result.ModifiedCount > 0;
+            return result.ModifiedCount >0;
         }
 
         public async Task<List<NoteActivityDto>> GetNoteActivityAsync(string userId, DateTime startDate, DateTime endDate)
@@ -170,11 +251,11 @@ namespace RecoTrackApi.Repositories
         public async Task<int> GetNoteStreakAsync(string userId)
         {
             var notes = await _notes.Find(n => n.UserId == userId && n.DeletedAt == null)
-                .SortByDescending(n => n.CreatedAt)
-                .Project(n => n.CreatedAt.Date)
-                .ToListAsync();
-            if (notes.Count == 0) return 0;
-            var streak = 0;
+ .SortByDescending(n => n.CreatedAt)
+ .Project(n => n.CreatedAt.Date)
+ .ToListAsync();
+ if (notes.Count ==0) return 0;
+ var streak =0;
             var today = DateTime.UtcNow.Date;
             var expected = today;
             var dates = notes.Distinct().ToList();
@@ -225,6 +306,140 @@ namespace RecoTrackApi.Repositories
                 .Find(filter)
                 .SortByDescending(n => n.UpdatedAt)
                 .ToListAsync();
+        }
+
+        // New: get notes shared with a user
+        public async Task<List<(Note note, NoteShare share)>> GetNotesSharedWithUserAsync(string userId)
+        {
+            // Single-join like query using aggregation to join NoteShares with Notes
+            var match = Builders<NoteShare>.Filter.Eq(s => s.SharedWithUserId, userId);
+            var lookup = new BsonDocument
+            {
+                { "$lookup", new BsonDocument {
+                    { "from", "Notes" },
+                    { "localField", "noteId" },
+                    { "foreignField", "_id" },
+                    { "as", "note" }
+                }}
+            };
+
+            var pipeline = new[]
+            {
+                new BsonDocument("$match", match.ToBsonDocument()),
+                lookup,
+                new BsonDocument("$unwind", new BsonDocument("path","$note")),
+                new BsonDocument("$match", new BsonDocument("$expr", new BsonDocument("$eq", new BsonArray {"$note.deletedAt", BsonNull.Value})))
+            };
+
+            var aggregate = _noteShares.Aggregate<BsonDocument>(pipeline);
+            var results = await aggregate.ToListAsync();
+
+            var output = new List<(Note, NoteShare)>();
+            foreach (var doc in results)
+            {
+                var bdoc = doc.AsBsonDocument;
+
+                // Build NoteShare from aggregation result (avoid serializer issues due to extra 'note' field)
+                var share = new NoteShare
+                {
+                    Id = bdoc.GetValue("_id").ToString(),
+                    NoteId = bdoc.GetValue("noteId").AsString,
+                    SharedWithUserId = bdoc.GetValue("sharedWithUserId").AsString,
+                    SharedByUserId = bdoc.GetValue("sharedByUserId").AsString,
+                    Permission = (NotePermission)bdoc.GetValue("permission").AsInt32,
+                    CreatedAt = bdoc.GetValue("createdAt").ToUniversalTime(),
+                    UpdatedAt = bdoc.GetValue("updatedAt").ToUniversalTime()
+                };
+
+                var noteDoc = bdoc["note"].AsBsonDocument;
+                var note = BsonSerializer.Deserialize<Note>(noteDoc);
+                output.Add((note, share));
+            }
+
+            return output;
+        }
+
+        // New: authorization check for a note - owner or shared with
+        public async Task<bool> IsUserAuthorizedForNoteAsync(string noteId, string userId)
+        {
+            if (string.IsNullOrWhiteSpace(noteId) || string.IsNullOrWhiteSpace(userId))
+                return false;
+
+            // Check ownership first
+            var ownerFilter = Builders<Note>.Filter.And(
+                Builders<Note>.Filter.Eq(n => n.Id, noteId),
+                Builders<Note>.Filter.Eq(n => n.UserId, userId),
+                Builders<Note>.Filter.Eq(n => n.DeletedAt, null)
+            );
+
+            var ownerExists = await _notes.Find(ownerFilter).AnyAsync();
+            if (ownerExists) return true;
+
+            // Check note share
+            var shareFilter = Builders<NoteShare>.Filter.And(
+                Builders<NoteShare>.Filter.Eq(s => s.NoteId, noteId),
+                Builders<NoteShare>.Filter.Eq(s => s.SharedWithUserId, userId)
+            );
+
+            return await _noteShares.Find(shareFilter).AnyAsync();
+        }
+
+        public async Task<bool> CreateNoteShareAsync(string noteId, string sharedWithUserId, string sharedByUserId, string permission)
+        {
+            // Validate input
+            if (string.IsNullOrWhiteSpace(noteId) || string.IsNullOrWhiteSpace(sharedWithUserId) || string.IsNullOrWhiteSpace(sharedByUserId))
+                throw new ArgumentException("noteId, sharedWithUserId and sharedByUserId are required.");
+
+            // Ensure note exists and not deleted
+            var note = await _notes.Find(n => n.Id == noteId && n.DeletedAt == null).FirstOrDefaultAsync();
+            if (note == null) return false;
+
+            // Create share document. Use upsert logic to avoid duplicates or conflicts.
+            var share = new NoteShare
+            {
+                NoteId = noteId,
+                SharedWithUserId = sharedWithUserId,
+                SharedByUserId = sharedByUserId,
+                Permission = permission.Equals("EDIT", StringComparison.OrdinalIgnoreCase) ? NotePermission.EDIT : NotePermission.VIEW,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            try
+            {
+                var filter = Builders<NoteShare>.Filter.And(
+                    Builders<NoteShare>.Filter.Eq(s => s.NoteId, noteId),
+                    Builders<NoteShare>.Filter.Eq(s => s.SharedWithUserId, sharedWithUserId)
+                );
+
+                var update = Builders<NoteShare>.Update
+                    .SetOnInsert(s => s.NoteId, share.NoteId)
+                    .SetOnInsert(s => s.SharedWithUserId, share.SharedWithUserId)
+                    .SetOnInsert(s => s.SharedByUserId, share.SharedByUserId)
+                    .Set(s => s.Permission, share.Permission)
+                    .Set(s => s.UpdatedAt, share.UpdatedAt)
+                    .SetOnInsert(s => s.CreatedAt, share.CreatedAt);
+
+                var options = new UpdateOptions { IsUpsert = true };
+                var result = await _noteShares.UpdateOneAsync(filter, update, options);
+
+                // If upserted or modified, return true
+                return result.IsAcknowledged && (result.UpsertedId != null || result.ModifiedCount >0);
+            }
+            catch (MongoWriteException mwx) when (mwx.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            {
+                // Duplicate due to race; consider it success (already exists)
+                return true;
+            }
+        }
+
+        public async Task<bool> RemoveNoteShareAsync(string noteId, string sharedWithUserId)
+        {
+            if (string.IsNullOrWhiteSpace(noteId) || string.IsNullOrWhiteSpace(sharedWithUserId))
+                throw new ArgumentException("noteId and sharedWithUserId are required.");
+
+            var result = await _noteShares.DeleteOneAsync(s => s.NoteId == noteId && s.SharedWithUserId == sharedWithUserId);
+            return result.DeletedCount >0;
         }
     }
 }

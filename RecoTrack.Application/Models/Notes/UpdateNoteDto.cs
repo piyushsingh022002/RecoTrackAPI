@@ -14,8 +14,14 @@ namespace RecoTrack.Application.Models.Notes
         public List<string>? Tags { get; set; }
 
         // Full replacement of labels
-        // Example: ["important", "favorite"]
+        // Example: ["Important", "Favourite"]
         public List<string>? Labels { get; set; }
+
+        // Labels to add to existing labels (merged)
+        public List<string>? LabelsToAdd { get; set; }
+
+        // Labels to remove from existing labels
+        public List<string>? LabelsToRemove { get; set; }
 
         public List<string>? MediaUrls { get; set; }
 

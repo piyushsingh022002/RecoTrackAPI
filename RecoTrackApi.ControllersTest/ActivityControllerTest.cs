@@ -24,7 +24,7 @@ namespace RecoTrackApi.ControllersTest
             _controller = new ActivityController(_activityServiceMock.Object, _noteServiceMock.Object, _loggerMock.Object);
         }
 
-        [Fact(Skip = "Fixing in progress")]
+        [Fact]
         public async Task GetNoteActivity_ReturnsOk_WithNoteActivity()
         {
             var userId = "user123";
@@ -44,9 +44,15 @@ namespace RecoTrackApi.ControllersTest
 
             var result = await _controller.GetNoteActivity(startDate, endDate);
             var okResult = Assert.IsType<OkObjectResult>(result);
-            var returnedActivities = Assert.IsType<List<NoteActivityDto>>(okResult.Value);
-            Assert.Single(returnedActivities);
-            Assert.Equal(5, returnedActivities[0].NoteCount);
+
+            // Controller wraps the data in ApiResponse<List<NoteActivityDto>>
+            var apiResponse = Assert.IsType<ApiResponse<List<NoteActivityDto>>>(okResult.Value);
+            Assert.True(apiResponse.Success);
+            var returnedActivities = apiResponse.Data;
+            Assert.NotNull(returnedActivities);
+            var returnedActivitiesNonNull = returnedActivities!;
+            Assert.Single(returnedActivitiesNonNull);
+            Assert.Equal(5, returnedActivitiesNonNull[0].NoteCount);
         }
     }
 }
