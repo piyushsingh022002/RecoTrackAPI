@@ -49,8 +49,10 @@ namespace RecoTrackApi.ControllersTest
             var apiResponse = Assert.IsType<ApiResponse<List<NoteActivityDto>>>(okResult.Value);
             Assert.True(apiResponse.Success);
             var returnedActivities = apiResponse.Data;
-            Assert.Single(returnedActivities);
-            Assert.Equal(5, returnedActivities[0].NoteCount);
+            Assert.NotNull(returnedActivities);
+            var returnedActivitiesNonNull = returnedActivities!;
+            Assert.Single(returnedActivitiesNonNull);
+            Assert.Equal(5, returnedActivitiesNonNull[0].NoteCount);
         }
     }
 }
