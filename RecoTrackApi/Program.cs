@@ -1,31 +1,10 @@
-﻿using Hangfire;
-using Hangfire.Mongo;
+﻿using Hangfire.Mongo;
 using Hangfire.Mongo.Migration.Strategies;
 using Hangfire.Mongo.Migration.Strategies.Backup;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using MongoDB.Driver;
-using RecoTrack.Application.Interfaces;
-using RecoTrack.Application.Models;
-using RecoTrack.Application.Services;
-using RecoTrack.Data.Repositories;
-using RecoTrack.Infrastructure.Services;
-using RecoTrack.Shared.Settings;
-using RecoTrackApi.Configurations;
-using RecoTrackApi.CustomMiddlewares;
 using RecoTrackApi.Extensions;
-using RecoTrackApi.Jobs;
 using RecoTrackApi.Logging;
-using RecoTrackApi.Repositories;
-using RecoTrackApi.Repositories.Interfaces;
-using RecoTrackApi.Services;
-using RecoTrackApi.Services.Interfaces;
 using Serilog;
-using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 

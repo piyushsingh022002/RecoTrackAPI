@@ -9,6 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ControllersTest\**" />
+    <Content Remove="ControllersTest\**" />
+    <EmbeddedResource Remove="ControllersTest\**" />
+    <None Remove="ControllersTest\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
     <PackageReference Include="Hangfire" Version="1.8.21" />
@@ -36,10 +43,6 @@
     <ProjectReference Include="..\RecoTrack.Data\RecoTrack.Data.csproj" />
     <ProjectReference Include="..\RecoTrack.Infrastructure\RecoTrack.Infrastructure.csproj" />
     <ProjectReference Include="..\RecoTrack.Shared\RecoTrack.Shared.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="ControllersTest\" />
   </ItemGroup>
 
 </Project>
